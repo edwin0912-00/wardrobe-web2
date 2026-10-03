@@ -1,4 +1,8 @@
 import { readFile } from 'node:fs/promises';
+import {
+  DEFAULT_IMAGE_GENERATION_MODE,
+  resolveImageGenerationMode,
+} from '../providers/image-generation-mode.js';
 import { editorialBlockingReference } from './editorial-blocking-reference.js';
 import {
   EDITORIAL_QA_GATES,
@@ -104,6 +108,7 @@ export class EditorialSceneExecutor {
 
   async executeShot(context) {
     if (context.signal?.aborted) throw abortError();
+    const imageGenerationMode = resolveImageGenerationMode(context.image_generation_mode);
     const expectedSceneId = sceneIdForIdempotencyKey(context.idempotency_key);
     // A resumed parent attempt may be recovering from a failure that happened
     // after SceneService had already completed and persisted the paid child
@@ -125,7 +130,11 @@ export class EditorialSceneExecutor {
         approvedLookReference: context.approved_look,
         presetReference,
         shotAnchorReferences,
+        imageGenerationMode,
       });
+    }
+    if ((scene.image_generation_mode ?? DEFAULT_IMAGE_GENERATION_MODE) !== imageGenerationMode) {
+      throw new Error('Persisted editorial child scene image mode does not match its shoot');
     }
     if (scene.scene_id !== expectedSceneId) {
       throw new Error('SceneService returned a non-deterministic editorial execution id');

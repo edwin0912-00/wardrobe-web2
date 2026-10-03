@@ -74,6 +74,65 @@ test('reports the deployed beta release and keeps authentication explicit', asyn
   );
 });
 
+test('exposes image capabilities and preserves the selected mode through all cinematic image requests', async () => {
+  const client = clientStub({ profile: { looks: [{ look_id: 'look-fast' }] } });
+  const calls = [];
+  let acceptRun;
+  client.health = async () => ({
+    status: 'degraded',
+    release_sha: 'fast-configured-sha',
+    image_generation_modes: {
+      slow: { available: false },
+      fast: { available: true },
+    },
+  });
+  client.createRunFromUploads = (input) => {
+    calls.push(['run', input]);
+    return new Promise((resolve) => { acceptRun = resolve; });
+  };
+  client.createScene = async (_lookId, input) => { calls.push(['background', input]); return { scene_id: 'scene-fast', status: 'QUEUED' }; };
+  client.createShoot = async (_lookId, input) => { calls.push(['shoot', input]); return { shoot_id: 'shoot-fast', status: 'QUEUED' }; };
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  assert.equal(bridge.state().availability, 'ready', 'configured Fast remains usable when overall health is degraded');
+  assert.deepEqual(bridge.state().imageGenerationModes, {
+    slow: { available: false },
+    fast: { available: true },
+  });
+  const pendingRun = bridge.createLook({ person: new Blob(['p']), garments: [new Blob(['g'])], imageGenerationMode: 'fast' });
+  assert.equal(calls[0][1].imageGenerationMode, 'fast');
+  acceptRun({ run_id: 'run-fast', status: 'QUEUED', image_generation_mode: 'fast' });
+  await pendingRun;
+  await bridge.createBackground({ presetId: 'std.room', presetVersion: '1', imageGenerationMode: 'fast' });
+  await bridge.createShoot({ modeId: 'editorial.one', modeVersion: '1', imageGenerationMode: 'fast' });
+
+  assert.equal(calls.find(([kind]) => kind === 'background')[1].imageGenerationMode, 'fast');
+  assert.equal(calls.find(([kind]) => kind === 'shoot')[1].imageGenerationMode, 'fast');
+  bridge.dispose();
+});
+
+test('legacy healthy health exposes Slow only and a hard degraded health disables both modes', async () => {
+  const legacy = clientStub();
+  const legacyBridge = createCinematicUiBridge({ client: legacy, autoProbe: false });
+  await legacyBridge.probe();
+  assert.deepEqual(legacyBridge.state().imageGenerationModes, {
+    slow: { available: true },
+    fast: { available: false, legacy: true },
+  });
+  legacyBridge.dispose();
+
+  const hardFault = clientStub();
+  hardFault.health = async () => ({ status: 'degraded' });
+  const hardBridge = createCinematicUiBridge({ client: hardFault, autoProbe: false });
+  await hardBridge.probe();
+  assert.equal(hardBridge.state().availability, 'unavailable');
+  assert.deepEqual(hardBridge.state().imageGenerationModes, {
+    slow: { available: false }, fast: { available: false },
+  });
+  hardBridge.dispose();
+});
+
 test('passes a selected text-only outfit to beta without inventing a garment upload', async () => {
   const client = clientStub();
   const bridge = createCinematicUiBridge({ client, autoProbe: false });
@@ -87,6 +146,7 @@ test('passes a selected text-only outfit to beta without inventing a garment upl
       identityDetail: null,
       garments: [],
       outfitText: 'лляні штани, вовняний джемпер',
+      imageGenerationMode: 'slow',
     },
   ]);
 });

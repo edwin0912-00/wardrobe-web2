@@ -6,6 +6,7 @@ import {
   sha256Blob,
 } from './draft-file-contract.js?v=20260723-1';
 import { publicErrorCode, publicErrorMessage } from './error-presentation.js?v=20260804-1';
+import { resolveImageGenerationMode } from './image-generation-mode-ui.js?v=20261003-1';
 
 export class DraftApiError extends Error {
   constructor(message, { status, body } = {}) {
@@ -140,12 +141,14 @@ export async function createRunFromServerDraft(finalizationKey, {
   sourceAvatarId = null,
   sourceLookId = null,
   fileManifest,
+  imageGenerationMode = 'slow',
 } = {}) {
   if (!fileManifest) throw new Error('Точний склад файлів чернетки не підтверджено');
   const body = { consent: true };
   if (finalizationKey !== undefined && finalizationKey !== null) body.finalization_key = finalizationKey;
   if (sourceAvatarId !== null) body.source_avatar_id = sourceAvatarId;
   if (sourceLookId !== null) body.source_look_id = sourceLookId;
+  body.image_generation_mode = resolveImageGenerationMode(imageGenerationMode);
   body.file_manifest = finalizationFileManifest(fileManifest);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error('Run creation request timed out')), timeoutMs);

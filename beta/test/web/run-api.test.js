@@ -32,6 +32,60 @@ test('web API accepts a new multipart user flow without job JSON editing', async
   assert.deepEqual(received.identityDetail.buffer, image);
   assert.equal(received.outfitText, 'keep every reference item');
   assert.equal(received.generateScene, false);
+  assert.equal(received.image_generation_mode, 'slow');
+  await app.close();
+});
+
+test('web API rejects an invalid image mode before creating a run', async () => {
+  let calls = 0;
+  const service = {
+    createRun: async () => { calls += 1; return { run_id: 'must-not-exist' }; },
+    getRun: async () => null, subscribe: () => () => {}, outputFile: async () => null,
+    retry: async () => null, selectGarments: async () => null, garmentSourceFile: async () => null, deleteRun: async () => {},
+  };
+  const app = await createWebApp({ service });
+  const form = new FormData();
+  form.append('image_generation_mode', 'FAST');
+  form.append('consent', 'true');
+  const response = await app.inject({
+    method: 'POST', url: '/api/runs', headers: form.getHeaders(), payload: form.getBuffer(),
+  });
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().code, 'IMAGE_GENERATION_MODE_INVALID');
+  assert.equal(calls, 0);
+  await app.close();
+});
+
+test('retry and garment selection gate the persisted run mode after authorization', async () => {
+  const service = {
+    imageGenerationModeForRun: async (runId) => {
+      assert.equal(runId, 'saved-fast-run');
+      return 'fast';
+    },
+    retry: async (runId) => ({ run_id: runId, status: 'QUEUED' }),
+    selectGarments: async (runId) => ({ run_id: runId, status: 'QUEUED' }),
+    createRun: async () => null,
+    getRun: async () => null,
+    subscribe: () => () => {},
+    outputFile: async () => null,
+    garmentSourceFile: async () => null,
+    deleteRun: async () => {},
+  };
+  const app = await createWebApp({
+    service,
+    health: { status: 'degraded' },
+    healthProvider: async () => ({
+      status: 'degraded', runtime_status: 'ready',
+      image_generation_modes: { slow: { available: false }, fast: { available: true } },
+    }),
+  });
+  const retry = await app.inject({ method: 'POST', url: '/api/runs/saved-fast-run/retry' });
+  const selection = await app.inject({
+    method: 'POST', url: '/api/runs/saved-fast-run/garment-selection',
+    headers: { 'content-type': 'application/json' }, payload: { selections: {} },
+  });
+  assert.equal(retry.statusCode, 202, retry.body);
+  assert.equal(selection.statusCode, 202, selection.body);
   await app.close();
 });
 

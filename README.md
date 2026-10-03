@@ -47,23 +47,30 @@ current map of source, services, private runtime and recovery boundaries.
 coordination board. Older release snapshots in `beta/docs/` remain history.
 
 The provider contract is documented in [PROVIDER-ROUTING.md](docs/PROVIDER-ROUTING.md):
-Codex-first photos with FAL Sunburst fallback, selectable FAL Seedance 2.0/2.5
-for reference-bound videos, OpenRouter semantic QA, and Lucy 2.5 Live.
+both sites offer per-job Slow/Fast image generation, Fashion Video selects FAL
+Seedance 2.0/2.5, OpenRouter supplies semantic QA, and Live uses Lucy 2.5.
 Provider output and deployment status require separate receipts; configuration
 or fixture tests alone do not prove an external model works.
 
-Candidate validation on 2026-10-01 produced real Codex and Sunburst photos and
-a real Lucy stream with a synthetic camera. Both Seedance versions rejected
-the test references with FAL's content-policy error; no video output was
-generated. See the provider contract for the terminal refusal and retry policy.
-The candidate is not a declaration of a successfully deployed video pipeline.
+The 2026-10-01 candidate produced real Codex and Sunburst photos and a real
+Lucy stream with a synthetic camera. Both Seedance versions rejected that
+original reference set with FAL's content-policy error; those jobs remain
+terminal. On 2026-10-03, a separate owner-authorized Seedance 2.5 request
+(`01a102e0-a588-7452-9b9e-1ab7b6b02afd`) used the approved-look and garment-detail
+images plus only reference-01's reviewed RGB derivative and synchronized
+depth. It returned HTTP 200 with a 720×1280, 24 FPS MP4 lasting 14.042 seconds;
+the observed balance reduction was $11.105316. Sampled review found a brief
+gray oval mask remnant and a background person. This exact test does not reopen
+the earlier rejected jobs or establish general person-reference access. No
+follow-up paid test is claimed here. See [the video-reference pipeline](docs/VIDEO-REFERENCE-PIPELINE.md)
+for reproduction and private-state boundaries.
 
-The active sites and engine were verified on 2026-10-01 at product commit
-`9832c265776d2ee1d160af3d08a054a06572413d`. A real call through that deployed
-Alpha's `CodexAppServerClient` generated a 1254×1254 PNG in 44.451 seconds,
-with no fallback and no personal input. This proves the Codex image transport;
-it does not claim a complete avatar → outfit → downstream QA journey. Private
-request IDs, receipts and generated media remain outside Git.
+The most recent deployed product snapshot documented here was verified on
+2026-10-01 at commit `9832c265776d2ee1d160af3d08a054a06572413d`. A real call
+through that deployed Alpha's `CodexAppServerClient` generated a 1254×1254 PNG
+in 44.451 seconds, with no fallback and no personal input. This proves that
+snapshot's Codex image transport, not the complete avatar → outfit → downstream
+QA journey or activation of the 2026-10-03 source work.
 
 ## One command from a clean machine
 
@@ -80,6 +87,16 @@ provider keys and the private video-reference originals described below.
 ```bash
 git clone --filter=blob:none --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git && cd wardrobe-web2 && ./verify --run
 ```
+
+For an operator install with a questionnaire, use `./setup run` instead of
+`./verify --run` in that command. It asks for the current host label, domain,
+private runtime and Codex profile, provider keys, video references and ports,
+then delegates to the same whole-product verifier and launcher. Configuration
+stays outside Git with private permissions; secret input is masked. On later
+runs it reuses the saved settings. `./setup --check` checks local configuration
+without spending provider credits. See [operator setup](docs/OPERATOR-SETUP.md)
+for a separate `--config` path and the SSH-host workflow. DNS, TLS, accounts
+and persistent service management remain explicit host responsibilities.
 
 `./verify` is the only evaluator contract. It installs locked dependencies,
 retrieves and SHA-verifies the immutable demo-media bundle, installs the pinned
@@ -201,11 +218,36 @@ video and Lucy Live; keep it in the host-private credential store. OpenRouter
 supplies semantic QA and can resume its existing recorded video jobs.
 Higgsfield is not an allowed production route in this deliverable.
 
+### Slow/Fast image generation
+
+Both the cinematic site and Studio expose the same image-only choice for a new
+job. **Slow** is the default: it uses the existing Codex-first route, falls
+back to FAL Sunburst only for a known safe primary failure, and sends requests
+with more than five required references directly to FAL without dropping any
+reference. **Fast** sends the request directly to FAL GPT Image 2.5 Sunburst;
+it never falls back to Codex. Both modes retain the existing reference and QA
+contracts. The choice does not change Fashion Video or Live.
+
+The APIs accept `image_generation_mode: "slow" | "fast"`; omission means
+`slow`, while `null`, an unknown value, or another type returns HTTP 400 with
+`IMAGE_GENERATION_MODE_INVALID`. The choice affects only the new request. Runs,
+scenes and shoots persist their effective mode; shoot child scenes inherit it,
+and retries or recovered jobs use that saved value. Replaying an idempotency
+key with a different mode conflicts. Older records without a mode remain Slow
+without being rewritten.
+
+`GET /api/health` reports
+`image_generation_modes: { slow: { available }, fast: { available } }`.
+Unavailable modes are rejected with HTTP 503 and
+`IMAGE_GENERATION_MODE_UNAVAILABLE`. Fast availability follows configured FAL
+capability and does not require a healthy Codex worker; a shared hard runtime
+fault can make both modes unavailable. There is no server-global speed toggle.
+
 | Operator setting | Purpose | Required for |
 |---|---|---|
-| `CODEX_HOME` | dedicated Codex OAuth profile used by the actual worker | primary image generation |
-| `ZEELY_GENERATION_PROVIDER=codex-primary` | Codex first, capability-aware Sunburst fallback | approved default image route |
-| `FAL_KEY` | server-only FAL inference credential | Sunburst, Seedance and Lucy |
+| `CODEX_HOME` | dedicated Codex OAuth profile used by the actual worker | Slow image generation |
+| `ZEELY_GENERATION_PROVIDER=codex-primary` | Codex first, capability-aware Sunburst fallback | Slow image generation |
+| `FAL_KEY` | server-only FAL inference credential | Fast images, Slow fallback, Seedance and Lucy |
 | `ZEELY_VLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY` | explicit OpenRouter QA selection | the current production QA route |
 | `ZEELY_VIDEO_REFERENCE_ROOT` | private folder matching the video-reference manifest | original motion clips and their previews |
 | `WARDROBE_ALPHA_RUNTIME_ROOT` | local launcher's durable state/log directory | predictable local state location |
@@ -225,6 +267,8 @@ original clips, playback derivatives and previews by filename, size and hash.
 Supply the matching private package and verify it with the runtime resolver;
 the main media bundle does not restore those operator-owned originals. Missing
 or altered media must produce a clear unavailable state, not substituted clips.
+The separate face-mask/depth preparation and exact-request replay workflow is
+documented in [VIDEO-REFERENCE-PIPELINE.md](docs/VIDEO-REFERENCE-PIPELINE.md).
 
 Standard background and Fashion Shoot materials resolve sixteen backgrounds
 and eighteen public shoot modes, seventeen generation-ready by materials. The
@@ -269,23 +313,27 @@ archive merely because its bytes also occur in a current checkout.
 
 ## Verification evidence and known limitations
 
-The source candidate's `./verify quick` and canonical `./verify` local
-acceptance passed. The latter starts real Chromium and both product processes,
-tests persistence/reload and validates the same-origin bridge and media ranges.
+Earlier source-candidate receipts for `./verify quick` and canonical `./verify`
+cover the then-current source; they do not verify or deploy the 2026-10-03
+Slow/Fast changes. The canonical gate starts real Chromium and both product
+processes, tests persistence/reload and validates the same-origin bridge and
+media ranges. Run it on the integrated source before recording acceptance.
 
-The full backend suite ran 1,196 cases: 1,183 passed and thirteen legacy build
-cases were blocked by the unchanged host-resource guard (about 21.64 GiB swap
-against a 1.25 GiB build limit). Eight stale fixture failures were independently
-reproduced on the pre-change source and repaired without relaxing product
-checks. These resource-blocked cases are not reported as passing.
+On that prior source, the full backend suite ran 1,196 cases: 1,183 passed and
+thirteen legacy build cases were blocked by the unchanged host-resource guard
+(about 21.64 GiB swap against a 1.25 GiB build limit). Eight stale fixture
+failures were independently reproduced on the pre-change source and repaired
+without relaxing product checks. These resource-blocked cases are not reported
+as passing.
 
-Real-provider checks produced Codex and Sunburst photos, including a complete
+Earlier real-provider checks produced Codex and Sunburst photos, including a
 nine-reference editorial detail request, and decoded Lucy WebRTC frames using
 a synthetic camera. They do not certify every style or real-person try-on
-quality. Both actual Seedance versions rejected the supplied person references
-with terminal content-policy errors. FAL separately documents ACR approval for
-faces in its Seedance 2.0 US-hosting offer; applicability to standard endpoints,
-Seedance 2.5 and this account remains unconfirmed.
+quality. The 2026-10-01 Seedance jobs using the original person references
+remain terminal; the separate 2026-10-03 derivative request described above
+is a single test, not a general access grant. FAL separately documents ACR
+approval for faces in its Seedance 2.0 US-hosting offer; applicability to
+standard endpoints, Seedance 2.5 and this account remains unconfirmed.
 
 ## Source synchronization and change history
 

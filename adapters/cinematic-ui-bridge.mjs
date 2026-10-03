@@ -5,7 +5,7 @@
  * The active site may be replaced wholesale while this bridge continues to use
  * the same relative `/api` contract.
  */
-import { createZeelyClient, phaseFor } from './zeely-client.mjs?v=20261001-1';
+import { createZeelyClient, phaseFor } from './zeely-client.mjs?v=20261003-1';
 
 const ACTIVE_PHASES = new Set([
   'uploading', 'running', 'needs_input', 'waiting_for_approval', 'recovering',
@@ -51,6 +51,7 @@ function initialState() {
     video: null,
     liveCapability: null,
     videoCapability: null,
+    imageGenerationModes: { slow: { available: false }, fast: { available: false } },
     catalogs: { backgrounds: [], shoots: [], videos: [] },
     // Durable deliveries are deliberately separate from the active job/result.
     // A browser refresh can restore a finished series or clip without making it
@@ -64,6 +65,21 @@ function initialState() {
     error: null,
     updatedAt: null,
   };
+}
+
+function imageGenerationModesFromHealth(health) {
+  const modes = health?.image_generation_modes;
+  if (!modes || typeof modes !== 'object' || Array.isArray(modes)) {
+    return { slow: { available: true }, fast: { available: false, legacy: true } };
+  }
+  return {
+    slow: { available: modes.slow?.available === true },
+    fast: { available: modes.fast?.available === true },
+  };
+}
+
+function imageGenerationModeFromJob(job) {
+  return job?.image_generation_mode === 'fast' || job?.imageGenerationMode === 'fast' ? 'fast' : 'slow';
 }
 
 /**
@@ -224,6 +240,7 @@ function runResult(run) {
     && previewSourceSha256 === cutoutNativeSha256;
   return {
     kind: 'look', aspect: '9:16', urls: [imageUrl], mediaUrl: imageUrl,
+    imageGenerationMode: imageGenerationModeFromJob(run),
     previewUrls: [previewBound ? cutoutPreviewUrl : cutoutBound ? cutoutNativeUrl : imageUrl],
     pendingRealMedia: false,
     reviewRequired: review,
@@ -613,6 +630,7 @@ export function createCinematicUiBridge({
     const expectedCount = Math.max(frames.length, 5);
     return {
       kind: 'shoot', aspect: '16:9', urls, previewUrls, mediaUrl: '',
+      imageGenerationMode: imageGenerationModeFromJob(shoot),
       pendingRealMedia: false,
       partial: urls.length < expectedCount,
       readyCount: urls.length,
@@ -668,6 +686,7 @@ export function createCinematicUiBridge({
       const image = client.sceneImageUrl(entity.scene_id);
       result = {
         kind, aspect: state.requestedAspect ?? '9:16', urls: [image], mediaUrl: image,
+        imageGenerationMode: imageGenerationModeFromJob(entity),
         previewUrl: presentationImagePreviewUrl(entity.preview_url ?? image) ?? entity.preview_url ?? null,
         previewUrls: [presentationImagePreviewUrl(entity.preview_url ?? image) ?? entity.preview_url ?? image],
         pendingRealMedia: false,
@@ -749,6 +768,7 @@ export function createCinematicUiBridge({
     return {
       shoot_id: shoot.shoot_id ?? shoot.id,
       status: shoot.status ?? 'COMPLETED',
+      image_generation_mode: imageGenerationModeFromJob(shoot),
       updated_at: shoot.updated_at ?? shoot.created_at ?? null,
       recovery,
       // A durable profile record can outlive an in-memory runner reload. The
@@ -756,6 +776,7 @@ export function createCinematicUiBridge({
       // shoot state reappears and yields immutable output URLs.
       result: result ?? {
         kind: 'shoot', aspect: '16:9', urls: [], previewUrls: [], mediaUrl: '',
+        imageGenerationMode: imageGenerationModeFromJob(shoot),
         pendingRealMedia: true, partial: true,
         readyCount: Number(recovery.approved_shot_count ?? 0), expectedCount: 5,
         frames: [], recoveryPending: true,
@@ -779,11 +800,13 @@ export function createCinematicUiBridge({
     return {
       scene_id: sceneId,
       status: scene.status ?? 'COMPLETED',
+      image_generation_mode: imageGenerationModeFromJob(scene),
       updated_at: scene.updated_at ?? scene.created_at ?? null,
       preset: scene.preset ?? null,
       result: {
         kind: 'background',
         sceneId,
+        imageGenerationMode: imageGenerationModeFromJob(scene),
         aspect: scene?.aspect_ratio ?? scene?.aspect ?? '3:4',
         urls: [imageUrl],
         previewUrls: [previewUrl],
@@ -888,7 +911,11 @@ export function createCinematicUiBridge({
 
   async function probe() {
     cancelUnavailableRetry();
-    emit('connection:checking', { availability: 'checking', error: null });
+    emit('connection:checking', {
+      availability: 'checking',
+      error: null,
+      imageGenerationModes: { slow: { available: false }, fast: { available: false } },
+    });
     try {
       /* Health is small and profile state is the thing the first mirror needs.
        * Starting both on the intro's first frame removes a full request round
@@ -898,10 +925,23 @@ export function createCinematicUiBridge({
         (error) => ({ error }),
       );
       const health = await client.health();
-      if (!['ready', 'ok'].includes(String(health?.status ?? '').toLowerCase())) {
+      const healthStatusReady = ['ready', 'ok'].includes(String(health?.status ?? '').toLowerCase());
+      let imageModes = imageGenerationModesFromHealth(health);
+      if (!healthStatusReady && !health?.image_generation_modes) {
+        imageModes = { slow: { available: false }, fast: { available: false } };
+      }
+      emit('connection:checking', {
+        releaseSha: health.release_sha ?? null,
+        imageGenerationModes: imageModes,
+      });
+      if (!healthStatusReady && !imageModes.slow.available && !imageModes.fast.available) {
         throw new CinematicUiBridgeError('ENGINE_UNAVAILABLE');
       }
-      emit('connection:healthy', { availability: 'checking', releaseSha: health.release_sha ?? null });
+      emit('connection:healthy', {
+        availability: 'checking',
+        releaseSha: health.release_sha ?? null,
+        imageGenerationModes: imageModes,
+      });
       const profileResult = await profileTask;
       try {
         if (profileResult.error) throw profileResult.error;
@@ -970,7 +1010,7 @@ export function createCinematicUiBridge({
         phase: 'idle', activeKind: null, run: null, choices: [], result: null, error: null,
       });
     },
-    async createLook({ person, identityDetail = null, garments = [], outfitText = '' } = {}) {
+    async createLook({ person, identityDetail = null, garments = [], outfitText = '', imageGenerationMode = 'slow' } = {}) {
       requireReady();
       const hasOutfitText = typeof outfitText === 'string' && outfitText.trim().length > 0;
       if (!person || (!garments.length && !hasOutfitText)) {
@@ -978,7 +1018,7 @@ export function createCinematicUiBridge({
       }
       emit('look:submitting', { activeKind: 'look', phase: 'uploading', error: null, result: null });
       try {
-        const run = await client.createRunFromUploads({ person, identityDetail, garments, outfitText });
+        const run = await client.createRunFromUploads({ person, identityDetail, garments, outfitText, imageGenerationMode });
         syncRun(run, 'run:created');
         return run;
       } catch (error) {
@@ -997,20 +1037,22 @@ export function createCinematicUiBridge({
       return client.retryRun(state.run.run_id);
     },
     loadCatalogs,
-    async createBackground({ presetId, presetVersion, aspect = '9:16', expectedReferencePackSha256 = null }) {
+    async createBackground({ presetId, presetVersion, aspect = '9:16', expectedReferencePackSha256 = null, imageGenerationMode = 'slow' }) {
       requireReady();
       if (!state.savedLook?.look_id) throw new CinematicUiBridgeError('NO_SAVED_LOOK');
       emit('scene:submitting', {
         activeKind: 'background', phase: 'running', requestedAspect: aspect,
         result: null, error: null,
       });
-      return client.createScene(state.savedLook.look_id, { presetId, presetVersion, expectedReferencePackSha256 });
+      return client.createScene(state.savedLook.look_id, {
+        presetId, presetVersion, expectedReferencePackSha256, imageGenerationMode,
+      });
     },
-    async createShoot({ modeId, modeVersion }) {
+    async createShoot({ modeId, modeVersion, imageGenerationMode = 'slow' }) {
       requireReady();
       if (!state.savedLook?.look_id) throw new CinematicUiBridgeError('NO_SAVED_LOOK');
       emit('shoot:submitting', { activeKind: 'shoot', phase: 'running', error: null, result: null });
-      return client.createShoot(state.savedLook.look_id, { modeId, modeVersion });
+      return client.createShoot(state.savedLook.look_id, { modeId, modeVersion, imageGenerationMode });
     },
     async approveShoot() {
       requireReady();

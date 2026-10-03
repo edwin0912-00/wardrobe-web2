@@ -131,3 +131,24 @@ Operations: source/tree/branch parity, release lock, same source SHA for active 
 - C3 incorporated: both AGENTS files are updated before beta-owned execution so alpha/current owner authority is unambiguous.
 
 Paid generation: no new video calls. Existing video result and previous image receipts are retained; any necessary image smoke must fit the remaining aggregate $20 validation cap and be estimated before submission.
+
+## Deployment and installer findings incorporated during integration
+
+The old main deploy command copies the entire monorepo into the serving tree
+and has no concrete rollback artifact. Replace that copy step with a scoped
+static artifact, source/hash receipt, active-work guard, and rollback on failed
+health/static/Range checks. Retain the existing alpha/origin verification gates
+and the existing beta deployment tool. Tests use temporary trees and fake
+service commands; only root activates a real service.
+
+The whole-product command already exists, but the owner's requested operator
+questionnaire does not. Add a small standard-library `./setup` wrapper that
+stores host/origin/ports/provider settings outside Git, masks secret entry,
+and delegates installation and startup to `./verify --run`. A host label is
+not remote provisioning; document the clone-and-run command on the chosen
+server and the separate DNS/TLS responsibility. Validate permissions, inputs,
+environment mapping and reuse of existing values without paid calls.
+
+The media downloader also needs unique temporary files, bounded networking
+and cleanup on errors. Preserve its exact archive length, SHA and path checks;
+prove failure and concurrency behavior with a local HTTP fixture.

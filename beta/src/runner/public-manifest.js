@@ -1,6 +1,12 @@
 const PRIVATE_BRAND = /(?:zeely|madeforthisjob)/giu;
 const POSIX_PRIVATE_PATH = /(?<![:\/\p{L}\p{N}_])\/(?:[^\s"'<>:,;!?)}\]]+\/)*[^\s"'<>:,;!?)}\]]+/giu;
 const WINDOWS_PRIVATE_PATH = /\b[A-Za-z]:\\(?:[^\\\s"'<>:,;!?)}\]]+\\)*[^\\\s"'<>:,;!?)}\]]+/gu;
+const PUBLIC_IMAGE_TRANSPORTS = new Set([
+  'codex',
+  'codex-test',
+  'fal-gpt-image-2.5-sunburst',
+  'openrouter',
+]);
 
 function compact(value) {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined));
@@ -170,6 +176,7 @@ function modelView(value) {
   return compact({
     name: safeText(value.name),
     job_set_type: safeText(value.job_set_type),
+    transport: PUBLIC_IMAGE_TRANSPORTS.has(value.transport) ? value.transport : undefined,
     reused: safeScalar(value.reused),
     source_run_id: safeText(value.source_run_id),
   });
@@ -196,6 +203,9 @@ export function publicManifestView(manifest) {
     schema_version: safeText(manifest.schema_version),
     run_id: safeText(manifest.run_id),
     job_id: safeText(manifest.job_id),
+    image_generation_mode: ['slow', 'fast'].includes(manifest.image_generation_mode)
+      ? manifest.image_generation_mode
+      : undefined,
     job_hash: safeText(manifest.job_hash),
     execution_hash: safeText(manifest.execution_hash),
     state: safeText(manifest.state),

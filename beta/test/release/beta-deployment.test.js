@@ -3,7 +3,31 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, realpath, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { activeBetaRunIds, activeBetaWorkIds, hasActiveSceneProviderWork, hasLiveProviderWaitLease, parseBetaReleaseArguments, replaceRunnerAppRoot, resolveNodeModulesTarget } from '../../tools/deploy-beta-release.mjs';
+import { createServer } from 'node:http';
+import { activeBetaRunIds, activeBetaWorkIds, hasActiveSceneProviderWork, hasLiveProviderWaitLease, parseBetaReleaseArguments, replaceRunnerAppRoot, resolveNodeModulesTarget, waitForHealth } from '../../tools/deploy-beta-release.mjs';
+
+test('activation waits for the new release and refuses a stale ready cache identity', async (t) => {
+  const expected = { base_commit: 'a'.repeat(40), cache_token: 'product-aaaaaaaa-aaaaaaaaaaaa' };
+  let responses = 0;
+  let staleCache = false;
+  const server = createServer((_request, response) => {
+    responses += 1;
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify({
+      status: 'ready',
+      release_sha: responses === 1 ? 'b'.repeat(40) : expected.base_commit,
+      cache_token: staleCache ? 'product-bbbbbbbb-bbbbbbbbbbbb' : expected.cache_token,
+    }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const url = `http://127.0.0.1:${server.address().port}/api/health`;
+  const health = await waitForHealth(url, expected, 3000);
+  assert.equal(health.release_sha, expected.base_commit);
+  assert.ok(responses >= 2, 'an old ready process cannot finish activation');
+  staleCache = true;
+  await assert.rejects(waitForHealth(url, expected, 10), /different release or cache token/);
+});
 
 test('beta deploy parser requires explicit safe paths and canonical beta health', () => {
   const options = parseBetaReleaseArguments([

@@ -70,3 +70,29 @@ test('public manifest projection removes private transport data while preserving
   assert.equal(manifest.qa.avatar.artifact.digest, '1'.repeat(64));
   assert.equal(manifest.qa.avatar.checks[0].score, 0.99);
 });
+
+test('public receipt identifies Fast mode and the allowlisted FAL transport only', () => {
+  const manifest = publicManifestView({
+    schema_version: '1.0.0',
+    image_generation_mode: 'fast',
+    models: {
+      avatar: {
+        name: 'GPT Image 2',
+        job_set_type: 'gpt_image_2',
+        transport: 'fal-gpt-image-2.5-sunburst',
+        metadata: { api_key: 'private-key', url: 'https://private.invalid/request' },
+      },
+      outfit: { name: 'GPT Image 2', job_set_type: 'gpt_image_2', transport: '/private/provider/path' },
+    },
+  });
+
+  assert.equal(manifest.image_generation_mode, 'fast');
+  assert.equal(manifest.models.avatar.transport, 'fal-gpt-image-2.5-sunburst');
+  assert.equal(manifest.models.outfit.transport, undefined);
+  assert.deepEqual(manifest.models.avatar, {
+    name: 'GPT Image 2',
+    job_set_type: 'gpt_image_2',
+    transport: 'fal-gpt-image-2.5-sunburst',
+  });
+  assert.doesNotMatch(JSON.stringify(manifest), /private-key|private\.invalid|private\/provider/u);
+});

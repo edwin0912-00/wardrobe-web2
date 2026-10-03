@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260801-1">
   <link rel="stylesheet" href="/experience.css?v=20260730-7">
-  <link rel="stylesheet" href="/result.css?v=20261001-1">
-  <link rel="stylesheet" href="/scene.css?v=20261001-1">
+  <link rel="stylesheet" href="/result.css?v=20261003-1">
+  <link rel="stylesheet" href="/scene.css?v=20261003-1">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
@@ -69,6 +69,7 @@
           <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — система сама визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
         </label>
         <div id="garment-preview" class="file-preview garment-preview" aria-live="polite"></div>
+        <div id="core-image-generation-mode-control"></div>
         <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI-сервісами.</span></label>
         <p id="draft-status" class="draft-status" aria-live="polite">Чернетка зберігається на 15 хвилин</p>
         <button id="submit-button" class="primary-button" type="submit"><span id="submit-label">Створити аватар</span><b>→</b></button>
@@ -85,6 +86,7 @@
               <p class="ai-live"><i></i> AI ENGINE ACTIVE</p>
               <h3 id="progress-title">Підготовка матеріалів</h3>
               <p id="progress-message" aria-live="polite">Перевіряємо матеріали…</p>
+              <small id="progress-image-generation-mode" class="image-generation-mode-status" hidden></small>
               <div class="progress-meter">
                 <div class="progress-meter-head"><div class="progress-value"><strong id="progress-stage">4%</strong><small>за станом сервера</small></div><span id="progress-count">CHECKPOINT SYNC</span></div>
                 <div id="progress-track" class="progress-track" role="progressbar" aria-label="Pipeline progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><i id="progress-bar"></i></div>
@@ -127,6 +129,7 @@
             <header class="result-header">
               <div class="result-title-group"><p class="result-kicker">YOUR WARDROBE AVATAR</p><h3 class="result-heading">Твій образ готовий</h3></div>
               <span id="result-save-state" class="result-qa">Перевірку пройдено</span>
+              <small id="result-image-generation-mode" class="image-generation-mode-status" hidden></small>
             </header>
             <div class="result-workspace">
               <div class="result-main">
@@ -301,6 +304,7 @@
                 <h3 id="scene-execution-title">Обери сцену</h3>
               </div>
               <span id="scene-server-status" class="scene-live-chip" data-tone="running">ПРЕВ’Ю</span>
+              <small id="scene-image-generation-mode-status" class="image-generation-mode-status" hidden></small>
             </header>
 
             <div id="scene-picker" class="scene-picker">
@@ -324,6 +328,7 @@
               <section id="scene-editorial-panel" class="scene-picker-panel editorial-preview-panel" role="tabpanel" aria-labelledby="scene-tab-editorial" hidden>
                 <div class="editorial-mode-scroll-container" style="overflow-y: auto; padding-right: 8px;">
                   <h4 class="editorial-section-title" style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Fashion Shoot</h4>
+                  <div id="shoot-image-generation-mode-control"></div>
                   <div id="editorial-mode-grid-new" class="editorial-mode-grid" aria-label="Напрями Fashion Shoot"></div>
                 </div>
                 <aside class="editorial-preview-gate">
@@ -342,6 +347,7 @@
                 <p id="scene-confirm-family">СЦЕНА</p>
                 <h4 id="scene-confirm-name">Вибрана сцена</h4>
                 <small id="scene-confirm-camera">4:5</small>
+                <div id="scene-image-generation-mode-control"></div>
                 <button id="scene-start" class="scene-text-button primary" type="button">Створити сцену</button>
                 <button id="scene-picker-back" class="scene-text-button" type="button">Обрати іншу</button>
               </aside>
@@ -444,6 +450,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20261001-1"></script>
+  <script type="module" src="/app.js?v=20261003-1"></script>
 </body>
 </html>

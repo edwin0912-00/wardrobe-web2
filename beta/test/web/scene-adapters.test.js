@@ -2060,6 +2060,40 @@ test('SceneGeneratorAdapter prepares one path-free immutable request manifest wi
   );
 });
 
+test('SceneGeneratorAdapter binds Fast into its immutable manifest and provider context', async () => {
+  const fixture = await contextFixture();
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      async generate(context) {
+        calls.push(context);
+        return {
+          image: await providerFrame(),
+          metadata: { provider: 'fixture', job_id: 'fast-scene-job' },
+        };
+      },
+    },
+  });
+  const context = {
+    ...fixture.base,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    attempt: 1,
+    cycle_attempt: 1,
+    imageGenerationMode: 'fast',
+  };
+  const prepared = await adapter.prepareSceneGeneration(context);
+  assert.equal(prepared.pre_spend_manifest.image_generation_mode, 'fast');
+  assert.equal(calls.length, 0);
+
+  await adapter.generateScene({
+    ...context,
+    expected_pre_spend_manifest_sha256: prepared.pre_spend_manifest_sha256,
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].imageGenerationMode, 'fast');
+});
+
 test('SceneGeneratorAdapter rejects an immutable pre-spend hash mismatch before provider generation', async () => {
   const fixture = await contextFixture();
   const calls = [];

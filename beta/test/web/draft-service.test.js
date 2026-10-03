@@ -318,14 +318,26 @@ test('creates a run from server-side draft files without uploading them again', 
   assert.equal(received.garments[0].preparation.method, 'UNCHANGED');
   assert.equal(received.outfitText, 'black tailored look');
   assert.equal(received.generateScene, false);
+  assert.equal(received.image_generation_mode, 'slow');
   assert.equal(Object.hasOwn(received, 'runId'), false);
 });
 
 test('forwards a validated finalization key as the deterministic run id', async (t) => {
   const received = [];
+  const modes = new Map();
   const runService = {
+    async assertImageGenerationMode(runId, mode) {
+      const current = modes.get(runId);
+      if (current !== undefined && current !== mode) {
+        const error = new Error('The image generation mode is immutable for this run');
+        error.statusCode = 409;
+        error.code = 'IMAGE_GENERATION_MODE_CONFLICT';
+        throw error;
+      }
+    },
     async createRun(input) {
       received.push(input);
+      modes.set(input.runId, input.image_generation_mode);
       return { run_id: input.runId, status: 'QUEUED', phase: 'UPLOADED' };
     },
   };
@@ -342,13 +354,22 @@ test('forwards a validated finalization key as the deterministic run id', async 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const created = await app.inject({
       method: 'POST', url: '/api/draft/run', headers: { cookie, 'content-type': 'application/json' },
-      payload: await finalizationPayload(app, cookie, { finalization_key: finalizationKey }),
+      payload: await finalizationPayload(app, cookie, { finalization_key: finalizationKey, image_generation_mode: 'fast' }),
     });
     assert.equal(created.statusCode, 202, created.body);
     assert.equal(created.json().run_id, finalizationKey);
   }
   assert.equal(received.length, 2);
   assert.deepEqual(received.map((input) => input.runId), [finalizationKey, finalizationKey]);
+  assert.deepEqual(received.map((input) => input.image_generation_mode), ['fast', 'fast']);
+
+  const conflict = await app.inject({
+    method: 'POST', url: '/api/draft/run', headers: { cookie, 'content-type': 'application/json' },
+    payload: await finalizationPayload(app, cookie, { finalization_key: finalizationKey, image_generation_mode: 'slow' }),
+  });
+  assert.equal(conflict.statusCode, 409, conflict.body);
+  assert.equal(conflict.json().code, 'IMAGE_GENERATION_MODE_CONFLICT');
+  assert.equal(received.length, 2);
 });
 
 test('finalization prepares a weak decodable draft image for the immutable run without changing draft bytes', async (t) => {

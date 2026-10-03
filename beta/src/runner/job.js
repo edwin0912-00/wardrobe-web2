@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertModelRoute, IMAGE_MODEL_ROUTE } from './model-policy.js';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 
 const SAFE_JOB_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -58,6 +59,7 @@ function validateApprovedAvatarReference(value) {
 
 export function validateJob(job) {
   if (!job || typeof job !== 'object' || Array.isArray(job)) throw new Error('job must be an object');
+  resolveImageGenerationMode(job.image_generation_mode);
   requireString(job.job_id, 'job.job_id');
   if (!SAFE_JOB_ID.test(job.job_id)) throw new Error('job.job_id contains unsafe characters');
   requireString(job.identity_reference, 'job.identity_reference');

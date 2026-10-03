@@ -105,6 +105,47 @@ test('runs the complete conditioning -> avatar -> outfit state machine and expor
   }
 });
 
+test('persisted Fast mode reaches conditioning and every core image dispatch', async () => {
+  const files = await fixture({ jobOverrides: { image_generation_mode: 'fast' } });
+  const sourceBytes = await readFile(files.jobPath);
+  const provider = new MockProvider();
+  const generate = provider.generate.bind(provider);
+  provider.generate = async (context) => {
+    const response = await generate(context);
+    response.metadata.routing = {
+      image_generation_mode: context.imageGenerationMode,
+      selected: 'fal-gpt-image-2.5-sunburst',
+    };
+    return response;
+  };
+  const runner = new PipelineRunner({ provider });
+  const result = await runner.runJobFile(files.jobPath);
+
+  assert.equal(result.status, STATES.COMPLETED);
+  const modeCalls = provider.calls.filter((call) => ['condition', 'generate'].includes(call.operation));
+  assert.ok(modeCalls.length > 0);
+  assert.ok(modeCalls.every((call) => call.context.imageGenerationMode === 'fast'));
+  const manifest = JSON.parse(await readFile(result.outputs.manifest, 'utf8'));
+  assert.equal(manifest.image_generation_mode, 'fast');
+  assert.equal(manifest.models.avatar.transport, 'fal-gpt-image-2.5-sunburst');
+  assert.equal(manifest.models.outfit.transport, 'fal-gpt-image-2.5-sunburst');
+  assert.deepEqual(await readFile(files.jobPath), sourceBytes);
+});
+
+test('legacy job omission routes as Slow without adding a default to its bytes', async () => {
+  const files = await fixture();
+  const sourceBytes = await readFile(files.jobPath);
+  const provider = new MockProvider();
+  const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
+
+  assert.equal(result.status, STATES.COMPLETED);
+  assert.ok(provider.calls
+    .filter((call) => ['condition', 'generate'].includes(call.operation))
+    .every((call) => call.context.imageGenerationMode === 'slow'));
+  assert.deepEqual(await readFile(files.jobPath), sourceBytes);
+  assert.doesNotMatch(sourceBytes.toString('utf8'), /image_generation_mode/);
+});
+
 test('rejects a neutral floor gradient before semantic QA and retries the avatar route', async () => {
   const files = await fixture();
   const provider = new MockProvider({ image: await greyFloorGradientPng() });

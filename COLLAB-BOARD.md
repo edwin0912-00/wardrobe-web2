@@ -18,11 +18,23 @@ after the FAL implementation. Publication is authorized even while the
 documented Seedance person-reference and host-resource blockers remain;
 activation of the live services is a separate operation.
 
-The current installation contract is `./verify --run`, covering both website
-surfaces and the complete engine. A future questionnaire must wrap that
-contract and preserve its receipts instead of rebuilding only a frontend or
-silently skipping provider/private-media requirements. Do not advertise a
-portable persistent-deployment command before that helper exists and is tested.
+The installation contract is `./verify --run`, covering both website surfaces
+and the complete engine. `./setup run` wraps it with the private operator
+questionnaire described in `docs/OPERATOR-SETUP.md`. It does not provision
+remote machines, DNS, TLS or service managers. Preserve its full-product
+receipts and the explicit provider/private-media requirements.
+
+Both websites now have an image-only Slow/Fast choice; Slow is the default and
+Fast calls FAL Sunburst directly. Each new image job stores its mode, and retry
+or recovery uses the stored value. See `docs/PROVIDER-ROUTING.md` for API and
+health contracts. The 2026-10-03 Seedance 2.5 result was a separate,
+request-specific derivative test; the 2026-10-01 original-reference refusals
+remain terminal. See `docs/VIDEO-REFERENCE-PIPELINE.md` for reproduction.
+
+This local handoff does not establish that current source changes were pushed,
+that a new source SHA passed the complete acceptance contract, or that either
+service was activated. Record each only from its own source, test and runtime
+receipts.
 
 For each completion, record source commit, deployed product SHA, verification
 scope and remaining gaps on this board. Distinguish a real provider result from
@@ -78,6 +90,10 @@ Install once in each worktree:
 Never share one checkout between agents. Never bypass the hook to race an
 overlapping atom; release or narrow the conflicting claim on the board first.
 
-## Conservation and video reliability handoff — 2026-10-02
+## Conservation and video reliability handoff — 2026-10-02 (updated 2026-10-03)
 
-Historical SSD source/media has been consolidated after hash and restoration checks; see `docs/SSD-CONSOLIDATION.md`. The private archive is preservation data, not another active checkout. Keep provider state, current runtime and original references in place. Video acknowledgement recovery must reuse the recorded request and exact model; missing/invalid receipts remain quarantined. Current source repairs do not grant FAL person-reference access and do not imply live deployment.
+Historical SSD source/media has been consolidated after hash and restoration checks; see `docs/SSD-CONSOLIDATION.md`. The private archive is preservation data, not another active checkout. Keep provider state, current runtime and original references in place. Video acknowledgement recovery must reuse the recorded request and exact model; missing/invalid receipts remain quarantined. Current source repairs do not grant blanket FAL access for person references and do not imply live deployment.
+
+The 2026-10-03 accepted derivative request is separate from the rejected
+original-reference jobs and does not grant blanket person-reference access.
+Those rejected jobs stay terminal, and the result is not a deployment receipt.

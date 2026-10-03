@@ -25,6 +25,7 @@ test('browser draft finalization includes a supplied idempotency UUID', async (t
     fileManifest: EMPTY_FILES,
   });
   await createRunFromServerDraft(undefined, { fileManifest: EMPTY_FILES });
+  await createRunFromServerDraft(undefined, { fileManifest: EMPTY_FILES, imageGenerationMode: 'fast' });
 
   assert.equal(requests[0].url, '/api/draft/run');
   assert.deepEqual(JSON.parse(requests[0].options.body), {
@@ -33,11 +34,44 @@ test('browser draft finalization includes a supplied idempotency UUID', async (t
     source_avatar_id: sourceAvatarId,
     source_look_id: sourceLookId,
     file_manifest: { version: 1, ...EMPTY_FILES },
+    image_generation_mode: 'slow',
   });
   assert.deepEqual(JSON.parse(requests[1].options.body), {
     consent: true,
     file_manifest: { version: 1, ...EMPTY_FILES },
+    image_generation_mode: 'slow',
   });
+  assert.deepEqual(JSON.parse(requests[2].options.body), {
+    consent: true,
+    file_manifest: { version: 1, ...EMPTY_FILES },
+    image_generation_mode: 'fast',
+  });
+});
+
+test('captures the mode in the serialized request before an in-flight preference change', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  let resolveFetch;
+  globalThis.fetch = async (_url, options) => {
+    captured = JSON.parse(options.body);
+    return new Promise((resolve) => { resolveFetch = resolve; });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  let preference = 'fast';
+  const request = createRunFromServerDraft('20cf6522-43fd-40ad-a8db-615bcdf80e07', {
+    fileManifest: EMPTY_FILES,
+    imageGenerationMode: preference,
+  });
+  preference = 'slow';
+  assert.equal(captured.image_generation_mode, 'fast');
+  resolveFetch(new Response(JSON.stringify({ run_id: 'accepted' }), {
+    status: 202,
+    headers: { 'content-type': 'application/json' },
+  }));
+  await request;
+  assert.equal(preference, 'slow');
+  assert.equal(captured.image_generation_mode, 'fast');
 });
 
 test('browser draft finalization aborts a hung request so reload recovery can take over', async (t) => {

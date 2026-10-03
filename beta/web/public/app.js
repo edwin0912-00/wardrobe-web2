@@ -5,7 +5,7 @@ import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './dr
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { createImagePreviewBlob, prepareImageFile } from './image-upload.js?v=20260731-1';
 import { bindImageDropZone } from './drop-upload.js?v=20260729-1';
-import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260723-13';
+import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20261003-1';
 import {
   draftBindingsFromManifest,
   draftRefsFromBindings,
@@ -16,11 +16,20 @@ import {
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
 import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
-import { claimProfileRun, createProfileVideoClip, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, retryProfileVideoClip, saveProfileRun } from './profile-client.js?v=20261001-1';
+import { claimProfileRun, createProfileVideoClip, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, retryProfileVideoClip, saveProfileRun } from './profile-client.js?v=20261003-1';
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
-import { createSceneUi } from './scene-ui.js?v=20261001-1';
+import { createSceneUi } from './scene-ui.js?v=20261003-1';
 import { errorFromApiResponse, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 import { realtimeLookStatusLabel, resolveVideoModelId, videoModelLabel, videoModelOptions, videoRetryAvailable, videoStyleAvailability } from './video-model-ui.js?v=20261001-1';
+import {
+  imageGenerationModeAvailable,
+  imageGenerationModeFromJob,
+  imageGenerationModeLabel,
+  normalizeImageGenerationModes,
+  readImageGenerationMode,
+  renderImageGenerationModeControl,
+  writeImageGenerationMode,
+} from './image-generation-mode-ui.js?v=20261003-1';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -113,6 +122,8 @@ let profileVideoRequestVersion = 0;
 let fashionVideoCapabilityRequestVersion = 0;
 let fashionVideoCapability = null;
 let selectedFashionVideoModel = null;
+let selectedImageGenerationMode = readImageGenerationMode();
+let imageGenerationModes = { slow: { available: false }, fast: { available: false } };
 let profileVideoClips = [];
 let profileVideoClipsLookId = null;
 let failedFashionVideoModel = null;
@@ -121,6 +132,35 @@ let realtimeLookCapability = null;
 let videoGenerationBusy = false;
 let failedFashionVideoClipId = null;
 let failedFashionVideoRetryKey = null;
+
+function imageGenerationModeUnavailableCopy(mode) {
+  if (mode === 'fast') return 'Fast зараз недоступний. Обери Slow або дочекайся готовності сервера.';
+  return imageGenerationModeAvailable('fast', imageGenerationModes)
+    ? 'Slow зараз недоступний. Обери Fast.'
+    : 'Створення зображень зараз недоступне.';
+}
+
+function renderCoreImageGenerationModeControl() {
+  const host = document.querySelector('#core-image-generation-mode-control');
+  if (host) host.innerHTML = renderImageGenerationModeControl(
+    selectedImageGenerationMode,
+    imageGenerationModes,
+    'core-image-generation-mode',
+  );
+}
+
+document.addEventListener('change', (event) => {
+  if (!event.target.matches('[data-image-generation-mode]')) return;
+  const mode = event.target.value;
+  if (!imageGenerationModeAvailable(mode, imageGenerationModes)) {
+    event.target.value = selectedImageGenerationMode;
+    return;
+  }
+  selectedImageGenerationMode = writeImageGenerationMode(mode);
+  document.querySelectorAll('[data-image-generation-mode]').forEach((control) => {
+    if (control !== event.target) control.value = selectedImageGenerationMode;
+  });
+});
 
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
@@ -143,7 +183,6 @@ function publicFailureMessage(message, source, fallback = 'Не вдалося �
 
 async function loadBuildIdentity() {
   const marker = document.querySelector('#build-identity');
-  if (!marker) return;
   try {
     const response = await fetch('/api/health', {
       cache: 'no-store',
@@ -151,6 +190,10 @@ async function loadBuildIdentity() {
     });
     if (!response.ok) throw new Error(`health ${response.status}`);
     const health = await response.json();
+    imageGenerationModes = normalizeImageGenerationModes(health);
+    renderCoreImageGenerationModeControl();
+    sceneUi?.refreshImageGenerationModeControls();
+    if (!marker) return;
     const releaseSha = typeof health.release_sha === 'string' && /^[a-f0-9]{40}$/.test(health.release_sha)
       ? health.release_sha
       : null;
@@ -167,9 +210,14 @@ async function loadBuildIdentity() {
     marker.dataset.state = 'ready';
     marker.title = `Release ${releaseSha}${cacheToken ? ` · ${cacheToken}` : ''}`;
   } catch {
-    marker.textContent = 'REL ?';
-    marker.dataset.state = 'unknown';
-    marker.title = 'Release identity unavailable';
+    imageGenerationModes = { slow: { available: false }, fast: { available: false } };
+    renderCoreImageGenerationModeControl();
+    sceneUi?.refreshImageGenerationModeControls();
+    if (marker) {
+      marker.textContent = 'REL ?';
+      marker.dataset.state = 'unknown';
+      marker.title = 'Release identity unavailable';
+    }
   }
 }
 
@@ -227,6 +275,7 @@ function initializePipelineGraph() {
 }
 
 initializePipelineGraph();
+renderCoreImageGenerationModeControl();
 void loadBuildIdentity();
 
 function movePipelineBoard(destination = 'progress') {
@@ -682,6 +731,12 @@ function renderRun(run) {
   if (activeRun?.run_id === run.run_id && Date.parse(run.updated_at) < Date.parse(activeRun.updated_at)) return;
   if (activeRun?.run_id !== run.run_id) renderedProgressFloor = 0;
   activeRun = run;
+  const imageModeText = `Зображення · ${imageGenerationModeLabel(imageGenerationModeFromJob(run))}`;
+  for (const selector of ['#progress-image-generation-mode', '#result-image-generation-mode']) {
+    const label = document.querySelector(selector);
+    label.textContent = imageModeText;
+    label.hidden = false;
+  }
   liveVisualizer.update(run.visual_checkpoint, {
     providerWaiting: isProviderWaitStage(run.inner_state ?? run.phase),
   });
@@ -1166,9 +1221,11 @@ function renderProfileSceneLibrary(look) {
     open.setAttribute('aria-label', `Відкрити ${title.textContent}. Статус: ${status}`);
     const state = document.createElement('small');
     state.textContent = status;
+    const imageMode = document.createElement('small');
+    imageMode.textContent = `Зображення · ${imageGenerationModeLabel(imageGenerationModeFromJob(scene))}`;
     const preset = document.createElement('code');
     preset.textContent = scene.preset?.preset_id || 'scene';
-    copy.append(title, state, preset);
+    copy.append(title, state, imageMode, preset);
     open.append(visual, copy);
     open.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -1232,6 +1289,7 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
       'editorial.edwin_novak.institutional_modernism': 'Інституційний модернізм',
       'editorial.edwin_novak.luminous_blue_white': 'Світлий синьо-білий',
     })[modeId] ?? 'Art Fashion';
+    const imageMode = imageGenerationModeLabel(imageGenerationModeFromJob(shoot));
     const item = document.createElement('li');
     item.className = 'profile-look-scene-item profile-look-editorial-item';
     const open = document.createElement('button');
@@ -1268,7 +1326,7 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
     const title = document.createElement('strong');
     title.textContent = mode;
     const state = document.createElement('small');
-    state.textContent = status;
+    state.textContent = `${status} · Зображення · ${imageMode}`;
     const code = document.createElement('code');
     code.textContent = shootId;
     copy.append(title, state, code);
@@ -1486,7 +1544,7 @@ async function renderProfile(profileValueToRender = null) {
     const title = document.createElement('strong');
     title.textContent = look.name || `Образ ${String(index + 1).padStart(2, '0')}`;
     const owner = document.createElement('small');
-    owner.textContent = selection.avatar?.name || 'Збережений аватар';
+    owner.textContent = `${selection.avatar?.name || 'Збережений аватар'} · Зображення · ${imageGenerationModeLabel(imageGenerationModeFromJob(look))}`;
     open.append(image, title, owner);
     open.setAttribute('aria-label', `Відкрити ${title.textContent} для ${owner.textContent}`);
     open.addEventListener('click', () => openProfileLook(profile, look).catch(showProfileError));
@@ -1541,7 +1599,7 @@ async function renderProfile(profileValueToRender = null) {
       ?? `/api/profile/looks/${encodeURIComponent(selectedProfileLookSelection.lookId)}/image`);
     detailImage.alt = selectedProfileLook.name || 'Вибраний збережений образ';
     detailTitle.textContent = selectedProfileLook.name || 'Збережений образ';
-    detailOwner.textContent = `${selectedProfileLookSelection.avatar?.name || 'Збережений аватар'} · зберігаємо зовнішність і пропорції тіла`;
+    detailOwner.textContent = `${selectedProfileLookSelection.avatar?.name || 'Збережений аватар'} · Зображення · ${imageGenerationModeLabel(imageGenerationModeFromJob(selectedProfileLook))} · зберігаємо зовнішність і пропорції тіла`;
     renderProfileSceneLibrary(selectedProfileLook);
     renderProfileEditorialLibrary(selectedProfileLook, profile);
     renderProfileVideoLibrary(selectedProfileLook);
@@ -1690,6 +1748,11 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (submitting) return;
   formError.textContent = '';
+  const imageGenerationMode = selectedImageGenerationMode;
+  if (!imageGenerationModeAvailable(imageGenerationMode, imageGenerationModes)) {
+    formError.textContent = imageGenerationModeUnavailableCopy(imageGenerationMode);
+    return;
+  }
   submit.disabled = true;
   form.inert = true;
   form.setAttribute('aria-busy', 'true');
@@ -1749,6 +1812,7 @@ form.addEventListener('submit', async (event) => {
       sourceAvatarId,
       sourceLookId,
       fileManifest: confirmedFiles,
+      imageGenerationMode,
     });
     localStorage.removeItem(PENDING_FINALIZATION_KEY);
     telemetry('client.submit_response', { status: 202, duration_ms: Math.round(performance.now() - startedAt), stage: 'run_created_from_draft' }, body.run_id);
@@ -1823,6 +1887,8 @@ sceneUi = createSceneUi({
   renderProfile: () => renderProfile(),
   humanize: humanizeVisibleText,
   telemetry,
+  getImageGenerationMode: () => selectedImageGenerationMode,
+  getImageGenerationModes: () => imageGenerationModes,
 });
 
 document.querySelector('#new-avatar').addEventListener('click', async () => {

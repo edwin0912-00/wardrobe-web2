@@ -2449,7 +2449,7 @@ export function validatePersistedSceneState(state, expectedSceneId) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) {
     throw new Error('Persisted scene state must be an object');
   }
-  assertExactKeys(
+  assertKeysWithOptional(
     state,
     [
       'schema_version',
@@ -2474,6 +2474,7 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       'error',
       'cancellation',
     ],
+    ['image_generation_mode'],
     'Persisted scene state',
   );
   if (state.schema_version !== SCENE_SCHEMA_VERSION || state.scene_id !== expectedSceneId) {
@@ -2485,6 +2486,11 @@ export function validatePersistedSceneState(state, expectedSceneId) {
   }
   assertSha256(state.request_fingerprint, 'scene.request_fingerprint');
   assertSha256(state.idempotency_hash, 'scene.idempotency_hash');
+  if (state.image_generation_mode !== undefined
+    && state.image_generation_mode !== 'slow'
+    && state.image_generation_mode !== 'fast') {
+    throw new Error('Persisted scene image_generation_mode is invalid');
+  }
   if (!Object.values(SCENE_STATES).includes(state.status)) throw new Error('Persisted scene status is invalid');
   for (const field of ['phase', 'message', 'created_at', 'updated_at']) {
     if (typeof state[field] !== 'string') throw new Error(`Persisted scene ${field} is invalid`);

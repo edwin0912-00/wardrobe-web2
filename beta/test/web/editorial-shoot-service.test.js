@@ -357,6 +357,57 @@ test('create is idempotent, snapshots the ShootBible, and binds every event to e
   );
 });
 
+test('legacy shoot fingerprints replay as Slow only and cannot be rebound to Fast', async (t) => {
+  const current = await fixture(t);
+  const created = await current.service.createShoot(current.request);
+  const statePath = current.service.statePath(created.shoot_id);
+  const transactionPath = current.service.transactionPath(created.shoot_id, 1);
+  const eventPath = current.service.eventPath(created.shoot_id, 1);
+  const state = JSON.parse(await readFile(statePath, 'utf8'));
+  const legacyFingerprint = sha256(canonicalJsonBytes({
+    approved_look: state.bindings.approved_look,
+    bible_sha256: state.bindings.shoot_bible.sha256,
+    shot_spec_hashes: state.bindings.shoot_bible.shot_spec_hashes,
+    scheduler_max_concurrency: 2,
+  }));
+  delete state.image_generation_mode;
+  state.request_fingerprint = legacyFingerprint;
+  state.state_integrity_sha256 = editorialStateSha256(state);
+
+  const event = JSON.parse(await readFile(eventPath, 'utf8'));
+  event.state_sha256 = state.state_integrity_sha256;
+  event.event_sha256 = sha256(canonicalJsonBytes(
+    Object.fromEntries(Object.entries(event).filter(([key]) => key !== 'event_sha256')),
+  ));
+  const transaction = JSON.parse(await readFile(transactionPath, 'utf8'));
+  transaction.state = state;
+  transaction.event = event;
+  transaction.state_sha256 = state.state_integrity_sha256;
+  transaction.event_sha256 = event.event_sha256;
+  transaction.transaction_sha256 = sha256(canonicalJsonBytes(
+    Object.fromEntries(Object.entries(transaction).filter(([key]) => key !== 'transaction_sha256')),
+  ));
+  await Promise.all([
+    writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`),
+    writeFile(eventPath, `${JSON.stringify(event, null, 2)}\n`),
+    writeFile(transactionPath, `${JSON.stringify(transaction, null, 2)}\n`),
+  ]);
+
+  const slowReplay = await current.service.createShoot(current.request);
+  assert.equal(slowReplay.shoot_id, created.shoot_id);
+  assert.equal(slowReplay.image_generation_mode ?? 'slow', 'slow');
+  assert.equal(editorialStateSha256(slowReplay), slowReplay.state_integrity_sha256);
+  await assert.rejects(
+    () => current.service.createShoot({
+      ...current.request,
+      imageGenerationMode: 'fast',
+    }),
+    (error) => error instanceof EditorialShootServiceError
+      && error.code === 'IDEMPOTENCY_CONFLICT'
+      && error.statusCode === 409,
+  );
+});
+
 test('Bible and hero approval replays bind both key and expected exact hash', async (t) => {
   const current = await fixture(t);
   const created = await current.service.createShoot(current.request);
@@ -898,7 +949,9 @@ test('restart requeues an interrupted shot with the same operation and provider 
     rootDirectory: root,
     clock: monotonicClock('2026-07-23T11:00:00.000Z'),
   });
+  first.request = { ...first.request, imageGenerationMode: 'fast' };
   const created = await createAndApproveBible(first);
+  assert.equal(created.image_generation_mode, 'fast');
   const running = await waitForState(
     first.service,
     created.shoot_id,
@@ -907,6 +960,7 @@ test('restart requeues an interrupted shot with the same operation and provider 
   );
   const originalAttempt = running.shots[0].attempts[0];
   assert.equal(executor.providerOperations.size, 1);
+  assert.equal(executor.invocations[0].image_generation_mode, 'fast');
 
   const restarted = new EditorialShootService({
     rootDirectory: root,
@@ -922,6 +976,7 @@ test('restart requeues an interrupted shot with the same operation and provider 
   );
   assert.equal(executor.providerOperations.size, 1, 'resume must reuse the provider operation');
   const resumeInvocation = executor.invocations.at(-1);
+  assert.equal(resumeInvocation.image_generation_mode, 'fast');
   assert.equal(resumeInvocation.operation_id, originalAttempt.operation_id);
   assert.equal(resumeInvocation.idempotency_key, originalAttempt.execution_idempotency_key);
 
@@ -981,6 +1036,7 @@ test('manual retry reuses the exact child scene after a post-generation executor
     },
   };
   const current = await fixture(t, { executor });
+  current.request = { ...current.request, imageGenerationMode: 'fast' };
   const created = await createAndApproveBible(current);
   const failed = await waitForState(
     current.service,
@@ -1011,6 +1067,8 @@ test('manual retry reuses the exact child scene after a post-generation executor
   assert.equal(invocations[6].operation_id, invocations[5].operation_id);
   assert.equal(invocations[6].idempotency_key, invocations[5].idempotency_key);
   assert.equal(invocations[6].reuse_existing_execution, true);
+  assert.equal(invocations[6].image_generation_mode, 'fast');
+  assert.equal(invocations.every((item) => item.image_generation_mode === 'fast'), true);
   assert.equal(recovered.shots[0].output.width, 1536);
   assert.equal(recovered.shots[0].output.height, 2048);
 });

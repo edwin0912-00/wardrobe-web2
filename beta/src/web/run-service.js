@@ -38,6 +38,7 @@ import {
   resetVisualState,
 } from './run-visualizer.js';
 import { sanitizeOutbound, sanitizeOutboundString } from '../security/outbound-redaction.js';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 
 const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
 const RESTARTABLE = new Set(['QUEUED', 'RUNNING']);
@@ -291,6 +292,17 @@ function resolveRunId(runId) {
   return resolved;
 }
 
+function imageGenerationModeConflict() {
+  const error = new Error('The image generation mode is immutable for this run');
+  error.statusCode = 409;
+  error.code = 'IMAGE_GENERATION_MODE_CONFLICT';
+  return error;
+}
+
+function effectiveImageGenerationMode(value) {
+  return resolveImageGenerationMode(value);
+}
+
 async function atomicJson(filename, value) {
   await mkdir(path.dirname(filename), { recursive: true });
   const temporary = `${filename}.${process.pid}.tmp`;
@@ -428,6 +440,7 @@ function publicRun(state) {
   );
   return {
     run_id: state.run_id,
+    image_generation_mode: effectiveImageGenerationMode(state.image_generation_mode),
     status: state.status,
     phase: state.phase,
     inner_state: state.inner_state ?? null,
@@ -491,6 +504,7 @@ export class RunService {
     this.events = new EventEmitter();
     this.running = new Map();
     this.creating = new Map();
+    this.creatingModes = new Map();
   }
 
   async initialize() {
@@ -532,24 +546,55 @@ export class RunService {
     }
   }
 
-  async createRun({ person, identityDetail, garments = [], outfitText = '', generateScene = false, runId: requestedRunId, approvedAvatarReference = null }) {
+  async assertImageGenerationMode(runId, value) {
+    const mode = resolveImageGenerationMode(value);
+    if (runId === null || runId === undefined) return mode;
+    const safeRunId = resolveRunId(runId);
+    const pendingMode = this.creatingModes.get(safeRunId);
+    if (pendingMode !== undefined && pendingMode !== mode) throw imageGenerationModeConflict();
+    const existing = await this.#read(safeRunId);
+    if (existing && effectiveImageGenerationMode(existing.image_generation_mode) !== mode) {
+      throw imageGenerationModeConflict();
+    }
+    return mode;
+  }
+
+  async imageGenerationModeForRun(runId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) return undefined;
+    const state = await this.#read(runId);
+    return state ? effectiveImageGenerationMode(state.image_generation_mode) : undefined;
+  }
+
+  async createRun({ person, identityDetail, garments = [], outfitText = '', generateScene = false, runId: requestedRunId, approvedAvatarReference = null, image_generation_mode: requestedImageGenerationMode }) {
     const runId = resolveRunId(requestedRunId);
+    const imageGenerationMode = resolveImageGenerationMode(requestedImageGenerationMode);
     const pending = this.creating.get(runId);
-    if (pending) return pending;
+    if (pending) {
+      if (this.creatingModes.get(runId) !== imageGenerationMode) throw imageGenerationModeConflict();
+      return pending;
+    }
     const existing = await this.#read(runId);
     if (existing) {
+      if (effectiveImageGenerationMode(existing.image_generation_mode) !== imageGenerationMode) throw imageGenerationModeConflict();
       if (RESTARTABLE.has(existing.status) && !this.running.has(runId)) this.start(runId);
       return publicRun(existing);
     }
     const raced = this.creating.get(runId);
-    if (raced) return raced;
-    const creation = this.#createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference })
-      .finally(() => this.creating.delete(runId));
+    if (raced) {
+      if (this.creatingModes.get(runId) !== imageGenerationMode) throw imageGenerationModeConflict();
+      return raced;
+    }
+    this.creatingModes.set(runId, imageGenerationMode);
+    const creation = this.#createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference, imageGenerationMode })
+      .finally(() => {
+        this.creating.delete(runId);
+        this.creatingModes.delete(runId);
+      });
     this.creating.set(runId, creation);
     return creation;
   }
 
-  async #createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference }) {
+  async #createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference, imageGenerationMode }) {
     if (garments.length > 5) {
       throw needsInput(
         'TOO_MANY_ITEM_REFERENCES',
@@ -605,7 +650,7 @@ export class RunService {
     }
     const now = this.clock().toISOString();
     const state = {
-      schema_version: '1.0.0', run_id: runId, status: 'QUEUED', phase: 'UPLOADED', message: 'Inputs accepted',
+      schema_version: '1.0.0', run_id: runId, image_generation_mode: imageGenerationMode, status: 'QUEUED', phase: 'UPLOADED', message: 'Inputs accepted',
       created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene), ...(importedApprovedAvatar ? { approved_avatar: importedApprovedAvatar } : {}) },
       image_model_route: [...this.generationRoute],
       image_model_route_version: GPT_IMAGE_2_LADDER_VERSION,
@@ -677,6 +722,7 @@ export class RunService {
     const state = await this.#read(runId);
     if (!state || TERMINAL.has(state.status)) return state;
     try {
+      await this.#existingJobForState(state);
       let conditioned = await this.#restoreConditionedGarments(state);
       if (state.inputs.garments.length) {
         if (!conditioned) {
@@ -694,6 +740,7 @@ export class RunService {
             imagePaths: state.inputs.garments,
             outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'),
             runId,
+            imageGenerationMode: effectiveImageGenerationMode(state.image_generation_mode),
             passport: state.inputs.garment_passport ?? null,
             selections: state.inputs.garment_selections ?? {},
             onProgress: async (innerState, message) => this.#write(state, { inner_state: innerState, message }),
@@ -1004,18 +1051,30 @@ export class RunService {
     }
   }
 
+  async #existingJobForState(state) {
+    const jobPath = path.join(this.runDirectory(state.run_id), 'job.json');
+    let existingJob;
+    try {
+      existingJob = JSON.parse(await readFile(jobPath, 'utf8'));
+    } catch (error) {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    }
+    if (effectiveImageGenerationMode(existingJob.image_generation_mode)
+      !== effectiveImageGenerationMode(state.image_generation_mode)) {
+      throw imageGenerationModeConflict();
+    }
+    return jobPath;
+  }
+
   async #buildJob(state, conditioned) {
     const jobPath = path.join(this.runDirectory(state.run_id), 'job.json');
     // A running job survives a beta release. Its checkpoint is bound to the
     // exact original job bytes, including the release-local prompt paths that
     // existed when the run began. Recompiling after a daemon restart changes
     // that hash and destroys an otherwise resumable paid generation.
-    try {
-      await access(jobPath);
-      return jobPath;
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
+    const existingJobPath = await this.#existingJobForState(state);
+    if (existingJobPath) return existingJobPath;
     const outfitText = conditioned?.outfitText
       ? [state.inputs.outfit_text, conditioned.outfitText].filter(Boolean).join('\n')
       : state.inputs.outfit_text;
@@ -1033,6 +1092,7 @@ export class RunService {
     const identityPack = await this.#buildIdentityPack(state);
     const job = {
       job_id: `web-${state.run_id}`, identity_reference: state.inputs.person,
+      image_generation_mode: effectiveImageGenerationMode(state.image_generation_mode),
       identity_reference_pack: { path: identityPack },
       output_directory: path.join(this.runDirectory(state.run_id), 'outputs'),
       prompts: {
@@ -1151,6 +1211,7 @@ export class RunService {
       const generationProfile = generationProfileForAttempt(index + 1, this.generationRoute);
       const response = await this.assetGenerator.generateScene({
         approvedOutfitPath, model, generationProfile, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
+        imageGenerationMode: effectiveImageGenerationMode(state.image_generation_mode),
         prompt: 'Using ATTACHMENT_1 [APPROVED_OUTFIT], create one memorable high-fashion editorial photograph with the exact same approved person and complete outfit. Preserve identity, face, hair, body proportions, every item color, texture, logo, text and fit. Place the subject in a bold contemporary editorial studio environment with sculptural light and a confident pose. No text overlay, no brand invention, no wardrobe changes.',
       });
       const candidatePath = path.join(sceneDirectory, `candidate-${index + 1}.png`);

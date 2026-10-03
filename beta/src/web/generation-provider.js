@@ -2,7 +2,8 @@ import { CodexAppServerClient } from '../providers/codex-app-server-client.js';
 import { CodexImagegenProvider } from '../providers/codex-imagegen-provider.js';
 import { OpenRouterImageGenProvider } from '../providers/openrouter-imagegen-provider.js';
 import { FalImagegenProvider } from '../providers/fal-imagegen-provider.js';
-import { ImageGenerationRouter } from '../providers/image-generation-router.js';
+import { ImageGenerationRouter, ImageGenerationRouterError } from '../providers/image-generation-router.js';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 import { resolveLookImageRoute } from '../runner/model-policy.js';
 import { ImageAssetGenerator as ProviderAssetGenerator } from './image-asset-generator.js';
 
@@ -25,6 +26,12 @@ class UnavailableGenerationProvider {
   healthStatus() {
     return { status: 'degraded', code: this.causeCode };
   }
+
+  imageGenerationModes() {
+    return { slow: { available: false }, fast: { available: false } };
+  }
+
+  runtimeStatus() { return 'degraded'; }
 
   async probe() {
     return this.healthStatus();
@@ -61,6 +68,19 @@ function timeoutFrom(value) {
   return parsed;
 }
 
+function rejectUnsupportedFastMode(provider) {
+  const generate = provider.generate.bind(provider);
+  provider.generate = async (context) => {
+    if (resolveImageGenerationMode(context?.imageGenerationMode) === 'fast') {
+      throw new ImageGenerationRouterError('Fast image generation is not configured for this provider runtime', {
+        code: 'IMAGE_GENERATION_MODE_UNAVAILABLE', statusCode: 503, retryable: false,
+      });
+    }
+    return generate(context);
+  };
+  return provider;
+}
+
 export async function createGenerationRuntime({
   mode = process.env.ZEELY_GENERATION_PROVIDER ?? CODEX_PRIMARY_IMAGEGEN_MODE,
   enableCodexTest = process.env.ZEELY_ENABLE_CODEX_IMAGEGEN_TEST_ONLY === 'true',
@@ -79,7 +99,8 @@ export async function createGenerationRuntime({
     ? new FalImagegenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm), ...(falClient ? { client: falClient } : {}) })
     : null;
   if (mode === OPENROUTER_IMAGEGEN_MODE) {
-    const provider = new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
+    const provider = rejectUnsupportedFastMode(new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) }));
+    const openRouterConfigured = () => String(process.env.OPENROUTER_API_KEY ?? '').trim().length > 0;
     const runtime = {
       mode,
       provider,
@@ -88,6 +109,8 @@ export async function createGenerationRuntime({
       label: 'OpenRouter Image Generation',
       status: null,
       healthStatus: () => ({ status: 'ready' }),
+      imageGenerationModes: () => ({ slow: { available: openRouterConfigured() }, fast: { available: false } }),
+      runtimeStatus: () => openRouterConfigured() ? 'ready' : 'degraded',
       close: async () => {},
     };
     onCloseReady(runtime.close);
@@ -113,9 +136,10 @@ export async function createGenerationRuntime({
     ? new ImageGenerationRouter({
         primary: codex,
         fallbacks: fal ? [fal] : [],
+        fastProvider: fal,
         generationRoute: lookImageRoute,
       })
-    : codex;
+    : rejectUnsupportedFastMode(codex);
   const fatalListener = (error) => onFatal(error);
   if (typeof worker.on === 'function') worker.on('fatal', fatalListener);
   const close = async () => {
@@ -141,6 +165,8 @@ export async function createGenerationRuntime({
       label: 'Image generation unavailable',
       status: degradedStatus,
       healthStatus: () => degradedStatus,
+      imageGenerationModes: () => unavailable.imageGenerationModes(),
+      runtimeStatus: () => unavailable.runtimeStatus(),
       close: async () => {},
     };
   }
@@ -157,6 +183,17 @@ export async function createGenerationRuntime({
     label,
     status,
     healthStatus: () => provider.healthStatus(),
+    imageGenerationModes: () => typeof provider.imageGenerationModes === 'function'
+      ? provider.imageGenerationModes()
+      : { slow: { available: true }, fast: { available: false } },
+    runtimeStatus: () => {
+      if (typeof provider.imageGenerationModes === 'function') {
+        return Object.values(provider.imageGenerationModes()).some((capability) => capability.available)
+          ? 'ready'
+          : 'degraded';
+      }
+      return provider.healthStatus?.().status === 'ready' ? 'ready' : 'degraded';
+    },
     close,
   };
 }

@@ -31,6 +31,7 @@ import { evaluateClipQa } from './video-clip-qa.js';
 import {
   DEFAULT_FAL_VIDEO_MODEL,
   FAL_VIDEO_PROVIDER,
+  FAL_VIDEO_PROMPT_POLICIES,
   FAL_VIDEO_POLICY_REJECTION_CODE,
   FAL_VIDEO_POLICY_REJECTION_MESSAGE,
   FAL_VIDEO_RESULT_REJECTION_CODE,
@@ -932,6 +933,7 @@ export class VideoService {
     request.referenceBindings = providerReferenceBindings;
     const immutableRequestBinding = {
       schema_version: 'fashion-video-request-binding-v1',
+      prompt_policy: FAL_VIDEO_PROMPT_POLICIES.SCENE_DIRECTION,
       source_binding: {
         source_sha256: sourceSha256,
         approved_look_receipt_sha256: lookBinding?.approvedLookReceiptSha256 ?? null,
@@ -1540,6 +1542,7 @@ export class VideoService {
       const payload = request?.provider_payload;
       const inputMedia = receipt.provider_input_media;
       const locked = clip.immutableRequestBinding;
+      const promptPolicy = locked?.prompt_policy ?? FAL_VIDEO_PROMPT_POLICIES.LEGACY_MOTION_ONLY;
       const hasProfileLookBinding = Object.hasOwn(locked?.source_binding ?? {}, 'profile_id')
         && Object.hasOwn(locked?.source_binding ?? {}, 'look_id');
       const motion = clip.motionReferenceBinding;
@@ -1596,7 +1599,8 @@ export class VideoService {
         || inputMedia?.schema_version !== 'fal-video-input-media-v1'
         || inputMedia.provider !== FAL_VIDEO_PROVIDER
         || inputMedia.video_model !== model.id || inputMedia.endpoint !== model.endpoint
-        || payload?.prompt !== falVideoPrompt(clip.prompt)
+        || (inputMedia.prompt_policy ?? FAL_VIDEO_PROMPT_POLICIES.LEGACY_MOTION_ONLY) !== promptPolicy
+        || payload?.prompt !== falVideoPrompt(clip.prompt, { policy: promptPolicy })
         || inputMedia.prompt_sha256 !== sha256(Buffer.from(payload.prompt))
         || payload.aspect_ratio !== clip.aspectRatio
         || payload.duration !== String(clip.durationSeconds)

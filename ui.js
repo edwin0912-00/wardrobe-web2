@@ -485,6 +485,8 @@
     var bridgeUnsubscribe = null;
     var bridgeState = bridge && typeof bridge.state === 'function' ? bridge.state() : null;
     var selectedVideoModel = null;
+    var selectedImageGenerationMode = readImageGenerationMode();
+    var pendingImageGenerationMode = null;
     var adapterLoading = !bridge;
     var adapterUnavailable = false;
     var hydratedProfileKey = '';
@@ -498,6 +500,69 @@
     var pendingRunId = null;
 
     function bridgeReady() { return !!bridge && bridgeState && bridgeState.availability === 'ready'; }
+
+    function readImageGenerationMode() {
+      try {
+        return global.localStorage.getItem('wardrobe.cinematic.image_generation_mode') === 'fast'
+          ? 'fast' : 'slow';
+      } catch (ignore) { return 'slow'; }
+    }
+
+    function saveImageGenerationMode(mode) {
+      selectedImageGenerationMode = mode === 'fast' ? 'fast' : 'slow';
+      try { global.localStorage.setItem('wardrobe.cinematic.image_generation_mode', selectedImageGenerationMode); }
+      catch (ignore) { /* browser storage may be blocked */ }
+    }
+
+    function imageGenerationModes() {
+      var modes = bridgeState && bridgeState.imageGenerationModes;
+      return modes && typeof modes === 'object'
+        ? modes
+        : { slow: { available: true }, fast: { available: false, legacy: true } };
+    }
+
+    function imageGenerationModeAvailable(mode) {
+      var entry = imageGenerationModes()[mode];
+      return !!entry && entry.available === true;
+    }
+
+    function imageGenerationModeLabel(mode) { return mode === 'fast' ? 'Fast' : 'Slow'; }
+
+    function imageGenerationModeForJob(job, fallback) {
+      if (job && (job.image_generation_mode === 'fast' || job.imageGenerationMode === 'fast')) return 'fast';
+      if (job && (job.image_generation_mode === 'slow' || job.imageGenerationMode === 'slow')) return 'slow';
+      return fallback === 'fast' ? 'fast' : 'slow';
+    }
+
+    function imageGenerationModeUnavailableCopy(mode) {
+      if (mode === 'fast') return 'Fast зараз недоступний. Оберіть Slow або дочекайтеся готовності сервера.';
+      return imageGenerationModeAvailable('fast')
+        ? 'Slow зараз недоступний. Оберіть Fast.'
+        : 'Створення зображень зараз недоступне.';
+    }
+
+    function imageGenerationModeControl() {
+      var modes = imageGenerationModes();
+      var slowAvailable = imageGenerationModeAvailable('slow');
+      var fastAvailable = imageGenerationModeAvailable('fast');
+      var note = '';
+      if (!slowAvailable && !fastAvailable) note = 'Створення зображень зараз недоступне.';
+      else if (!slowAvailable) note = 'Slow зараз недоступний на сервері.';
+      else if (!fastAvailable) {
+        note = modes.fast && modes.fast.legacy
+          ? 'Fast недоступний: цей сервер підтримує лише Slow.'
+          : 'Fast зараз недоступний на сервері.';
+      }
+      return '<label class="image-generation-mode-choice"><span>Режим зображення</span>' +
+        '<select data-image-generation-mode aria-label="Швидкість створення зображень"' +
+          (!slowAvailable && !fastAvailable ? ' disabled' : '') + '>' +
+          '<option value="slow"' + (selectedImageGenerationMode === 'slow' ? ' selected' : '') +
+            (!slowAvailable ? ' disabled' : '') + '>Slow</option>' +
+          '<option value="fast"' + (selectedImageGenerationMode === 'fast' ? ' selected' : '') +
+            (!fastAvailable ? ' disabled' : '') + '>Fast</option>' +
+        '</select><small role="status" aria-live="polite">' + esc(note) + '</small></label>';
+    }
+
     function bridgeWorking() {
       return !!bridgeState && ['uploading', 'running', 'needs_input', 'waiting_for_approval', 'recovering']
         .indexOf(bridgeState.phase) >= 0;
@@ -716,7 +781,8 @@
           saved: true,
           name: record.name || '',
           createdAt: record.created_at || null,
-          avatarId: record.avatar_id || null
+          avatarId: record.avatar_id || null,
+          imageGenerationMode: imageGenerationModeForJob(record)
         };
         var savedAssets = lookAssets(record, resultUrl);
         saved.resultUrl = savedAssets.masterUrl || savedAssets.displayFallback || resultUrl;
@@ -793,6 +859,12 @@
           render(); notifyGateChange();
           return;
         }
+        var requestedImageMode = selectedImageGenerationMode;
+        if (!imageGenerationModeAvailable(requestedImageMode)) {
+          actionError = { kind: 'look', message: imageGenerationModeUnavailableCopy(requestedImageMode) };
+          render(); notifyGateChange();
+          return;
+        }
         var garmentFiles = items.filter(function (item) { return !!item.file; })
           .map(function (item) { return item.file; });
         var outfitText = items.filter(function (item) { return !item.file; })
@@ -803,6 +875,7 @@
           return;
         }
         pendingLookItems = items.slice();
+        pendingImageGenerationMode = requestedImageMode;
         pendingRunId = null;
         pending = true; view = 'look'; actionError = null;
         render(); notifyGateChange();
@@ -810,7 +883,8 @@
           person: person.main.file,
           identityDetail: person.face ? person.face.file : null,
           garments: garmentFiles,
-          outfitText: outfitText
+          outfitText: outfitText,
+          imageGenerationMode: requestedImageMode
         }).then(function (run) {
           pendingRunId = run && run.run_id || pendingRunId;
           /* The server now owns the submitted bytes and run receipt.  Clear only
@@ -897,6 +971,7 @@
               resultUrl: bridgeState.result.masterUrl || bridgeState.result.mediaUrl || bridgeState.result.urls[0] || '',
               masterSourceUrl: bridgeState.result.masterUrl || '',
               resultPreviewUrl: null,
+              imageGenerationMode: imageGenerationModeForJob(bridgeState.run, pendingImageGenerationMode),
               items: items.slice(), bg: null, shootStyle: null, videoStyle: null,
               shot: false, video: false, actionResults: {}
             });
@@ -907,6 +982,7 @@
             if (looks[at].resultUrl !== nextResultUrl) looks[at].resultPreviewUrl = null;
             looks[at].resultUrl = nextResultUrl;
             if (bridgeState.savedLook) looks[at].lookId = bridgeState.savedLook.look_id;
+            looks[at].imageGenerationMode = imageGenerationModeForJob(bridgeState.run, looks[at].imageGenerationMode);
           }
           var resultAssets = lookAssets(bridgeState.result, looks[at].resultUrl);
           looks[at].resultUrl = resultAssets.masterUrl || resultAssets.displayFallback || looks[at].resultUrl;
@@ -1060,6 +1136,7 @@
               '<span class="slot__empty">' + (i + 1) + '</span></label>';
       }
       return '<div class="slots slots--big">' + cells + '</div>' +
+        imageGenerationModeControl() +
         '<input id="io-items" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif" multiple hidden' + (full ? ' disabled' : '') + '>' +
         uploadNotice() +
         '<button class="secondary" type="button" data-presets aria-expanded="' + (presetsOpen ? 'true' : 'false') + '">' +
@@ -1150,8 +1227,8 @@
       if (!scenes.length && !shoots.length && !videos.length && !restoreErrors.length) return '';
       var sceneCards = scenes.map(function (delivery, index) {
         var result = delivery && delivery.result || {};
-        var label = delivery && delivery.preset && (delivery.preset.ui_name_uk || delivery.preset.preset_id)
-          || 'Збережений фон';
+        var label = (delivery && delivery.preset && (delivery.preset.ui_name_uk || delivery.preset.preset_id)
+          || 'Збережений фон') + ' · ' + imageGenerationModeLabel(imageGenerationModeForJob(result));
         return '<article class="saved-material saved-material--scene">' +
           '<button type="button" class="saved-material__open" data-open-saved-background="' + index + '">' +
             (result.previewUrl || result.mediaUrl
@@ -1170,11 +1247,11 @@
           return '<article class="saved-material saved-material--shoot saved-material--recovering">' +
             '<span class="saved-material__open" aria-live="polite">' +
               '<span class="saved-material__placeholder">Ф</span>' +
-              '<span>Фотосесія · відновлюємо матеріали</span>' +
+              '<span>Фотосесія · ' + imageGenerationModeLabel(imageGenerationModeForJob(delivery)) + ' · відновлюємо матеріали</span>' +
             '</span>' +
           '</article>';
         }
-        var label = 'Фотосесія · ' + (result.readyCount || frames.filter(function (frame) {
+        var label = 'Фотосесія · ' + imageGenerationModeLabel(imageGenerationModeForJob(result)) + ' · ' + (result.readyCount || frames.filter(function (frame) {
           return frame && frame.imageUrl;
         }).length) + ' з ' + (result.expectedCount || 5) + ' кадрів';
         return '<article class="saved-material saved-material--shoot">' +
@@ -1317,6 +1394,7 @@
         '<div class="glass__eyebrow">' + copy.eyebrow + '</div>' +
         '<div class="glass__h">' + copy.title + '</div>' +
         '<p class="glass__lede pickerlede">' + copy.note + '</p>' +
+        (kind === 'bg' || kind === 'shoot' ? imageGenerationModeControl() : '') +
         (kind === 'fash' ? videoModelControl() : '') +
         '<div class="visualpicks" data-picker="' + kind + '">' + choices + '</div>' +
         '<button class="secondary pickerback" type="button" data-picker-back>Назад до образу</button>');
@@ -1333,6 +1411,7 @@
         '<div class="glass__h">Де дивимось?</div>' +
         '<p class="glass__lede pickerlede">' + (option ? esc(option.name) + '. ' : '') +
           'Формат визначає поверхню готового результату.</p>' +
+        imageGenerationModeControl() +
         '<div class="formatpicks">' +
           '<button class="formatpick" type="button" data-aspect="16:9">' +
             '<span class="formatpick__shape" data-format="wide" aria-hidden="true"></span>' +
@@ -1420,6 +1499,8 @@
         '<div class="glass__h">Образ ' + (selected + 1) + '</div>' +
         '<div class="look-status" role="status"><span class="look-status__dot" aria-hidden="true"></span>АКТИВНИЙ ОБРАЗ</div>' +
         '<p class="glass__lede">' + esc(lookLede(l)) + '</p>' +
+        '<small class="image-generation-mode-result">Зображення · ' +
+          imageGenerationModeLabel(imageGenerationModeForJob(l)) + '</small>' +
         '<div class="looklabel">ваші образи</div>' +
         '<div class="lookthumbs">' + askLookThumbs() + '</div>' +
         savedMaterialsLibrary(l) +
@@ -1777,6 +1858,19 @@
 
     function orbWindow(state, label) {
       var canon = ORB_CANON[state] || 'listening';
+      var imageMode = state === 'look'
+        ? (pending && pendingImageGenerationMode
+          ? pendingImageGenerationMode
+          : imageGenerationModeForJob(bridgeState && bridgeState.run))
+        : state === 'bg'
+          ? (pendingAction && pendingAction.kind === 'bg' && pendingAction.imageGenerationMode
+            ? pendingAction.imageGenerationMode
+            : imageGenerationModeForJob(bridgeState && bridgeState.scene))
+          : state === 'shoot'
+            ? (pendingAction && pendingAction.kind === 'shoot' && pendingAction.imageGenerationMode
+              ? pendingAction.imageGenerationMode
+              : imageGenerationModeForJob(bridgeState && bridgeState.shoot))
+            : null;
       /* A canvas, not a stack of rings. In the answer mirror it occupies a deliberate
        * central field: large enough to read as the room thinking, still transparent enough
        * for the architecture to remain the image. */
@@ -1784,6 +1878,7 @@
           '<canvas class="orbfield__canvas" data-orb-canvas data-orb-canon="' + esc(canon) + '"' +
             ' width="384" height="384"></canvas>' +
           '<span class="orbfield__label">' + esc(label) + '</span>' +
+          (imageMode ? '<small class="orbfield__mode">' + imageGenerationModeLabel(imageMode) + '</small>' : '') +
         '</div>';
     }
 
@@ -2019,7 +2114,12 @@
       var option = view === 'shoot' ? selectedOption('shoot', look)
                  : view === 'video' ? selectedOption('fash', look)
                  : view === 'bg' ? selectedOption('bg', look) : null;
-      return option ? option.name : 'Готовий результат';
+      if (view === 'live' || view === 'video') return option ? option.name : 'Готовий результат';
+      var delivery = look && look.actionResults && look.actionResults[view === 'bg' ? 'background' : view];
+      var mode = view === 'look'
+        ? imageGenerationModeForJob(look)
+        : imageGenerationModeForJob(delivery);
+      return (option ? option.name : 'Готовий результат') + ' · ' + imageGenerationModeLabel(mode);
     }
 
     function renderShow() {
@@ -2317,9 +2417,16 @@
     }
 
     function startGeneratedAction(kind, chosen, aspect) {
+      var requestedImageMode = kind === 'bg' || kind === 'shoot' ? selectedImageGenerationMode : null;
+      if (requestedImageMode && !imageGenerationModeAvailable(requestedImageMode)) {
+        actionError = { kind: kind, message: imageGenerationModeUnavailableCopy(requestedImageMode) };
+        render(); notifyGateChange();
+        return;
+      }
       awaitingAspect = null;
       pendingAction = {
         kind: kind, aspect: aspect,
+        imageGenerationMode: requestedImageMode,
         optionId: chosen ? chosen.id : null,
         optionLabel: chosen ? chosen.name : null
       };
@@ -2339,12 +2446,14 @@
             presetId: chosen && chosen.id,
             presetVersion: chosen && chosen.version,
             aspect: aspect,
-            expectedReferencePackSha256: chosen && chosen.referencePackSha256
+            expectedReferencePackSha256: chosen && chosen.referencePackSha256,
+            imageGenerationMode: requestedImageMode
           });
         } else if (kind === 'shoot') {
           command = bridge.createShoot({
             modeId: chosen && chosen.id,
-            modeVersion: chosen && chosen.version
+            modeVersion: chosen && chosen.version,
+            imageGenerationMode: requestedImageMode
           });
         } else {
           command = bridge.createVideo({
@@ -2631,6 +2740,18 @@
         render();
         var nextControl = stage.querySelector('[data-video-model]');
         if (nextControl) nextControl.focus();
+        notifyGateChange();
+      } else if (ev.target.matches('[data-image-generation-mode]')) {
+        if (locked()) return;
+        var requestedMode = ev.target.value;
+        if ((requestedMode !== 'slow' && requestedMode !== 'fast') || !imageGenerationModeAvailable(requestedMode)) {
+          ev.target.value = selectedImageGenerationMode;
+          return;
+        }
+        saveImageGenerationMode(requestedMode);
+        render();
+        var nextModeControl = askRoot.querySelector('[data-image-generation-mode]');
+        if (nextModeControl) nextModeControl.focus();
         notifyGateChange();
       }
     });

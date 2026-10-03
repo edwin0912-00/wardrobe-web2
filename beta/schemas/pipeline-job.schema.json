@@ -21,6 +21,7 @@
       "type": "string",
       "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$"
     },
+    "image_generation_mode": { "enum": ["slow", "fast"] },
     "identity_reference": { "$ref": "#/$defs/path" },
     "identity_reference_pack": { "$ref": "#/$defs/referencePack" },
     "approved_avatar_reference": {

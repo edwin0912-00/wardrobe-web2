@@ -205,9 +205,11 @@ const app = await createWebApp({
   health,
   healthProvider: async () => {
     const runtime = await Promise.resolve(generation.healthStatus?.());
+    const runtimeStatus = generation.runtimeStatus?.() ?? runtime?.status;
     return {
       ...health,
-      ...(runtime?.status ? { runtime_status: runtime.status } : {}),
+      ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
+      ...(generation.imageGenerationModes ? { image_generation_modes: generation.imageGenerationModes() } : {}),
     };
   },
   logger: true,

@@ -978,6 +978,7 @@ export class PipelineRunner {
       attempt,
       idempotencyKey: key,
       jobId: context.job.job_id,
+      imageGenerationMode: context.job.image_generation_mode ?? 'slow',
       source,
       previousQa: context.checkpoint.qa.conditioning,
     });
@@ -1025,6 +1026,7 @@ export class PipelineRunner {
       references,
       idempotencyKey: key,
       jobId: context.job.job_id,
+      imageGenerationMode: context.job.image_generation_mode ?? 'slow',
       workDirectory: context.workDirectory,
       previousQa: context.checkpoint.qa[phase],
     });
@@ -1338,6 +1340,9 @@ export class PipelineRunner {
       schema_version: '1.0.0',
       run_id: context.runId,
       job_id: context.job.job_id,
+      ...(Object.hasOwn(context.job, 'image_generation_mode')
+        ? { image_generation_mode: context.job.image_generation_mode }
+        : {}),
       job_hash: context.jobHash,
       execution_hash: context.executionHash,
       state: STATES.COMPLETED,
@@ -1350,6 +1355,7 @@ export class PipelineRunner {
         avatar: {
           name: context.checkpoint.artifacts.avatar.model,
           job_set_type: context.checkpoint.artifacts.avatar.job_set_type,
+          transport: context.checkpoint.artifacts.avatar.metadata?.routing?.selected,
           ...(context.checkpoint.artifacts.avatar.approved_reuse ? {
             reused: true,
             source_run_id: context.checkpoint.artifacts.avatar.approved_reuse.source_run_id,
@@ -1358,6 +1364,7 @@ export class PipelineRunner {
         outfit: {
           name: context.checkpoint.artifacts.outfit.model,
           job_set_type: context.checkpoint.artifacts.outfit.job_set_type,
+          transport: context.checkpoint.artifacts.outfit.metadata?.routing?.selected,
         },
       },
       image_artifacts: {

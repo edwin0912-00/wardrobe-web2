@@ -58,6 +58,13 @@ function encode(value) {
   return encodeURIComponent(String(value));
 }
 
+function resolveImageGenerationMode(value = 'slow') {
+  if (value !== 'slow' && value !== 'fast') {
+    throw new TypeError('imageGenerationMode must be slow or fast');
+  }
+  return value;
+}
+
 function idempotencyKey(prefix) {
   if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID()}`;
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -392,7 +399,7 @@ export function createZeelyClient({
       return request(`/draft/file/${encode(slot)}/${encode(fileId)}`, { method: 'DELETE' });
     },
     clearDraft: () => request('/draft', { method: 'DELETE' }),
-    async createRunFromDraft({ fileManifest, sourceAvatarId = null, sourceLookId = null, finalizationKey = null }) {
+    async createRunFromDraft({ fileManifest, sourceAvatarId = null, sourceLookId = null, finalizationKey = null, imageGenerationMode = 'slow' }) {
       const run = await request('/draft/run', {
         method: 'POST',
         body: {
@@ -401,17 +408,19 @@ export function createZeelyClient({
           file_manifest: fileManifest,
           source_avatar_id: sourceAvatarId,
           source_look_id: sourceLookId,
+          image_generation_mode: resolveImageGenerationMode(imageGenerationMode),
         },
       });
       update('run', run, 'run:created');
       client.watchRun(run.run_id);
       return run;
     },
-    async createRunFromUploads({ person, identityDetail = null, garments = [], outfitText = '' }) {
+    async createRunFromUploads({ person, identityDetail = null, garments = [], outfitText = '', imageGenerationMode = 'slow' }) {
       const data = new FormData();
       data.append('consent', 'true');
       data.append('outfit_text', outfitText);
       data.append('person_photo', person, person.name);
+      data.append('image_generation_mode', resolveImageGenerationMode(imageGenerationMode));
       if (identityDetail) data.append('identity_detail', identityDetail, identityDetail.name);
       garments.forEach((file) => data.append('garment_images', file, file.name));
       const run = await request('/runs', { method: 'POST', body: data });
@@ -455,13 +464,14 @@ export function createZeelyClient({
     listScenePresets: () => request('/scene-presets'),
     scenePresetPreviewUrl: (presetId, version) => url(`/scene-presets/${encode(presetId)}/${encode(version)}/preview`),
     listScenes: (lookId) => request(`/profile/looks/${encode(lookId)}/scenes`),
-    async createScene(lookId, { presetId, presetVersion, expectedReferencePackSha256 = null, idempotencyKey: key = null }) {
+    async createScene(lookId, { presetId, presetVersion, expectedReferencePackSha256 = null, imageGenerationMode = 'slow', idempotencyKey: key = null }) {
       const scene = await request(`/profile/looks/${encode(lookId)}/scenes`, {
         method: 'POST',
         headers: { 'Idempotency-Key': key || createIdempotencyKey('scene') },
         body: {
           preset_id: presetId,
           preset_version: presetVersion,
+          image_generation_mode: resolveImageGenerationMode(imageGenerationMode),
           ...(expectedReferencePackSha256 ? { expected_reference_pack_sha256: expectedReferencePackSha256 } : {}),
         },
       });
@@ -500,11 +510,15 @@ export function createZeelyClient({
     listEditorialModes: () => request('/editorial-modes'),
     editorialModePreviewUrl: (modeId, version) => url(`/editorial-modes/${encode(modeId)}/${encode(version)}/preview`),
     listShoots: (lookId) => request(`/profile/looks/${encode(lookId)}/editorial-shoots`),
-    async createShoot(lookId, { modeId, modeVersion, idempotencyKey: key = null }) {
+    async createShoot(lookId, { modeId, modeVersion, imageGenerationMode = 'slow', idempotencyKey: key = null }) {
       const shoot = await request(`/profile/looks/${encode(lookId)}/editorial-shoots`, {
         method: 'POST',
         headers: { 'Idempotency-Key': key || createIdempotencyKey('shoot') },
-        body: { mode_id: modeId, mode_version: modeVersion },
+        body: {
+          mode_id: modeId,
+          mode_version: modeVersion,
+          image_generation_mode: resolveImageGenerationMode(imageGenerationMode),
+        },
       });
       update('shoot', shoot, 'shoot:created');
       client.watchShoot(shoot.shoot_id);

@@ -160,7 +160,10 @@ test('Seedance 2.0 uploads approved images before motion video and keeps exact r
     assert.equal(options.input.codec, 'H264');
     assert.equal(options.input.generate_audio, false);
     assert.equal(options.input.task, undefined);
-    assert.match(options.input.prompt, /@Video1 is private motion-only reference material/);
+    assert.match(options.input.prompt, /@Video1 is private reference-only directing material/);
+    assert.match(options.input.prompt, /environment, lighting, colour grade, optical effects/);
+    assert.doesNotMatch(options.input.prompt, /motion-only reference/);
+    assert.equal(created.inputMedia.prompt_policy, 'scene-direction-v2');
     assert.match(options.input.prompt, /@Image1 is the approved master/);
     assert.match(options.input.prompt, /@Image2 is optional face detail/);
     assert.match(options.input.prompt, /@Image3 is the garment card/);

@@ -299,7 +299,11 @@ test('EditorialSceneExecutor delegates to one deterministic SceneService executi
     const sceneService = {
       async createScene(input) {
         calls.push(input);
-        return { scene_id: sceneId, status: 'QUEUED' };
+        return {
+          scene_id: sceneId,
+          status: 'QUEUED',
+          image_generation_mode: input.imageGenerationMode,
+        };
       },
       async waitForIdle() {
         return { scene_id: sceneId, status: decision === 'PASS' ? 'COMPLETED' : 'FAILED' };
@@ -364,9 +368,11 @@ test('EditorialSceneExecutor delegates to one deterministic SceneService executi
         camera: { lens_mm: 50, framing: 'three_quarter' },
       },
       shot_spec_sha256: 'b'.repeat(64),
+      image_generation_mode: 'fast',
       signal: new AbortController().signal,
     });
     assert.equal(calls.length, 1);
+    assert.equal(calls[0].imageGenerationMode, 'fast');
     assert.equal(result.execution_id, sceneId);
     assert.equal(result.decision, decision);
     assert.deepEqual(result.qa.gates.map((gate) => gate.id), EDITORIAL_QA_GATES);
@@ -667,6 +673,7 @@ test('a temporarily unavailable shoot runtime cannot delete or hide a saved Fash
     lookId: saved.look.look_id,
     status: 'COMPLETED',
   });
+  shoot.image_generation_mode = 'fast';
   shoot.bindings.shoot_bible = {
     ...shoot.bindings.shoot_bible,
     mode_id: 'shoot.window_gobo_warm',
@@ -707,6 +714,7 @@ test('a temporarily unavailable shoot runtime cannot delete or hide a saved Fash
 
   const retained = profiles.listEditorialShoots(owner.profileId, saved.look.look_id);
   assert.equal(retained.length, 1, 'startup must not delete a durable projection');
+  assert.equal(retained[0].image_generation_mode, 'fast');
   assert.equal(retained[0].preview_slot, 'environmental_hero');
 
   const response = await app.inject({
@@ -717,6 +725,7 @@ test('a temporarily unavailable shoot runtime cannot delete or hide a saved Fash
   assert.equal(response.statusCode, 200, response.body);
   const [listed] = response.json().editorial_shoots;
   assert.equal(listed.shoot_id, shoot.shoot_id);
+  assert.equal(listed.image_generation_mode, 'fast');
   assert.deepEqual(listed.shots, []);
   assert.deepEqual(listed.recovery, {
     code: 'EDITORIAL_SHOOT_RUNTIME_UNAVAILABLE',

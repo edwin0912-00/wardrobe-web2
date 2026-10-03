@@ -1,6 +1,6 @@
 # Wardrobe operational handoff
 
-## Current verified state — 2026-10-01
+## Current operating contract — 2026-10-03
 
 `alpha` in `edwin0912-00/wardrobe-web2` is the only active source line and the
 repository default. One source tree contains the cinematic website, Studio,
@@ -14,9 +14,20 @@ release pointer. Product-code changes require a new verified artifact built
 from the corresponding alpha commit. The shared board records activation.
 
 The current routing contract is [PROVIDER-ROUTING.md](PROVIDER-ROUTING.md):
-Codex → FAL Sunburst for images, selectable FAL Seedance 2.0/2.5 for video,
+Slow (default): Codex → safe FAL Sunburst fallback; Fast: direct Sunburst for
+images. Both sites expose the choice and each accepted job persists it.
+Selectable FAL Seedance 2.0/2.5 remains available for video,
 OpenRouter semantic QA and Lucy 2.5 Live. Model, endpoint, reference bindings
 and known remote request IDs must survive retries and daemon restarts.
+
+The reproducible masked-RGB/depth video experiment and pinned source/model
+contracts are in [VIDEO-REFERENCE-PIPELINE.md](VIDEO-REFERENCE-PIPELINE.md).
+New video prompts retain environment, lighting, color and optics; old jobs
+retain their original prompt policy during recovery. The owner accepted one
+successful Seedance 2.5 transport test and requested no further paid video
+tests in this release. Read [DECISIONS.md](../DECISIONS.md) before changing
+these choices. Use [OPERATOR-SETUP.md](OPERATOR-SETUP.md) for a fresh host's
+private questionnaire and complete `./verify --run` installation.
 
 ### Source and persistent state
 
@@ -57,7 +68,7 @@ Monitor: `https://monitor.madeforthisjob.com`.
 Other project presentation/watch services exist; inspect their own labels
 before changing them. Do not equate an installed plist with a running process.
 
-### Verification and provider receipt
+### Historical verification and provider receipt — 2026-10-01
 
 The unified `./verify` local gate passed, including the real Chromium fixture
 journey, persistence after reload, both processes and MP4 byte ranges. The

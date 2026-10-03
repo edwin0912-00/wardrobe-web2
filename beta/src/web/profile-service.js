@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 
 import { buildLiveLookReferenceCard } from './live-look-reference.js';
 import { sendPresentationImage } from './presentation-preview.js';
@@ -240,6 +241,7 @@ function rowLook(row) {
     look_id: row.look_id,
     avatar_id: row.avatar_id,
     parent_look_id: row.parent_look_id ?? null,
+    image_generation_mode: resolveImageGenerationMode(row.image_generation_mode),
     created_at: iso(row.created_at),
     expires_at: iso(row.expires_at),
     image_url: `/api/profile/looks/${encodeURIComponent(row.look_id)}/image`,
@@ -255,6 +257,7 @@ function rowScene(row) {
       preset_id: row.preset_id,
       version: row.preset_version,
     },
+    image_generation_mode: resolveImageGenerationMode(row.image_generation_mode),
     status: row.status,
     created_at: iso(row.created_at),
     updated_at: iso(row.updated_at),
@@ -283,6 +286,7 @@ function rowEditorialShoot(row) {
       mode_id: row.mode_id,
       version: row.mode_version,
     },
+    image_generation_mode: resolveImageGenerationMode(row.image_generation_mode),
     status: row.status,
     created_at: iso(row.created_at),
     updated_at: iso(row.updated_at),
@@ -391,6 +395,7 @@ export class ProfileService {
         avatar_id TEXT NOT NULL,
         source_run_id TEXT NOT NULL UNIQUE,
         parent_look_id TEXT,
+        image_generation_mode TEXT NOT NULL DEFAULT 'slow',
         created_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
         FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE,
@@ -436,6 +441,7 @@ export class ProfileService {
         look_id TEXT NOT NULL,
         preset_id TEXT NOT NULL,
         preset_version TEXT NOT NULL,
+        image_generation_mode TEXT NOT NULL DEFAULT 'slow',
         status TEXT NOT NULL,
         output_sha256 TEXT,
         created_at INTEGER NOT NULL,
@@ -454,6 +460,7 @@ export class ProfileService {
         look_id TEXT NOT NULL,
         mode_id TEXT NOT NULL,
         mode_version TEXT NOT NULL,
+        image_generation_mode TEXT NOT NULL DEFAULT 'slow',
         status TEXT NOT NULL,
         approved_shot_count INTEGER NOT NULL DEFAULT 0,
         hero_output_sha256 TEXT,
@@ -517,6 +524,12 @@ export class ProfileService {
         ALTER TABLE run_claims
         ADD COLUMN source_look_id TEXT REFERENCES looks(look_id) ON DELETE SET NULL
       `);
+    }
+    for (const table of ['looks', 'scenes', 'editorial_shoots']) {
+      const columns = this.database.prepare(`PRAGMA table_info(${table})`).all();
+      if (!columns.some((column) => column.name === 'image_generation_mode')) {
+        this.database.exec(`ALTER TABLE ${table} ADD COLUMN image_generation_mode TEXT NOT NULL DEFAULT 'slow'`);
+      }
     }
     const editorialColumns = this.database.prepare('PRAGMA table_info(editorial_shoots)').all();
     if (!editorialColumns.some((column) => column.name === 'preview_slot')) {
@@ -632,18 +645,18 @@ export class ProfileService {
       FROM avatars WHERE profile_id = ? ORDER BY created_at DESC, avatar_id
     `).all(profileId);
     const lookRows = this.#db().prepare(`
-      SELECT look_id, avatar_id, parent_look_id, created_at, expires_at
+      SELECT look_id, avatar_id, parent_look_id, image_generation_mode, created_at, expires_at
       FROM looks WHERE profile_id = ? ORDER BY created_at DESC, look_id
     `).all(profileId);
     const sceneRows = this.#db().prepare(`
       SELECT scene_id, look_id, preset_id, preset_version, status, output_sha256,
-             created_at, updated_at, expires_at
+             image_generation_mode, created_at, updated_at, expires_at
       FROM scenes WHERE profile_id = ? ORDER BY updated_at DESC, scene_id
     `).all(profileId);
     const editorialRows = this.#db().prepare(`
       SELECT shoot_id, look_id, mode_id, mode_version, status, approved_shot_count,
              hero_output_sha256, preview_slot, preview_output_sha256,
-             created_at, updated_at, expires_at
+             image_generation_mode, created_at, updated_at, expires_at
       FROM editorial_shoots WHERE profile_id = ?
       ORDER BY updated_at DESC, shoot_id
     `).all(profileId);
@@ -772,8 +785,9 @@ export class ProfileService {
     } : null;
   }
 
-  saveClaimedRun(profileId, runId) {
+  saveClaimedRun(profileId, runId, { imageGenerationMode = 'slow' } = {}) {
     assertRunId(runId);
+    const persistedImageGenerationMode = resolveImageGenerationMode(imageGenerationMode);
     return this.#transaction((database) => {
       const profile = this.#activeProfile(profileId);
       if (!profile) throw new ProfileError(404, 'PROFILE_NOT_FOUND', 'Profile not found');
@@ -801,9 +815,20 @@ export class ProfileService {
         }
         lookId = randomUUID();
         database.prepare(`
-          INSERT INTO looks(look_id, profile_id, avatar_id, source_run_id, parent_look_id, created_at, expires_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(lookId, profileId, avatarId, runId, claim.source_look_id ?? null, now, profile.expires_at);
+          INSERT INTO looks(
+            look_id, profile_id, avatar_id, source_run_id, parent_look_id,
+            image_generation_mode, created_at, expires_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          lookId,
+          profileId,
+          avatarId,
+          runId,
+          claim.source_look_id ?? null,
+          persistedImageGenerationMode,
+          now,
+          profile.expires_at,
+        );
         database.prepare(`
           UPDATE run_claims SET saved_avatar_id = ?, saved_look_id = ? WHERE run_id = ?
         `).run(claim.source_avatar_id === null ? avatarId : null, lookId, runId);
@@ -813,7 +838,7 @@ export class ProfileService {
         SELECT avatar_id, created_at, expires_at FROM avatars WHERE avatar_id = ? AND profile_id = ?
       `).get(avatarId, profileId) : null;
       const lookRow = lookId ? database.prepare(`
-        SELECT look_id, avatar_id, parent_look_id, created_at, expires_at FROM looks WHERE look_id = ? AND profile_id = ?
+        SELECT look_id, avatar_id, parent_look_id, image_generation_mode, created_at, expires_at FROM looks WHERE look_id = ? AND profile_id = ?
       `).get(lookId, profileId) : null;
       return {
         avatar: avatarRow ? rowAvatar(avatarRow) : null,
@@ -1099,6 +1124,7 @@ export class ProfileService {
     if (!scene || typeof scene !== 'object' || typeof scene.scene_id !== 'string') {
       throw new ProfileError(400, 'INVALID_SCENE', 'Scene projection is invalid');
     }
+    const imageGenerationMode = resolveImageGenerationMode(scene.image_generation_mode);
     return this.#transaction((database) => {
       const profile = this.#activeProfile(profileId);
       const look = database.prepare('SELECT look_id FROM looks WHERE look_id = ? AND profile_id = ?').get(lookId, profileId);
@@ -1107,7 +1133,8 @@ export class ProfileService {
         throw new ProfileError(409, 'SCENE_LOOK_MISMATCH', 'Scene is bound to a different look');
       }
       const existing = database.prepare(`
-        SELECT profile_id, look_id, preset_id, preset_version FROM scenes WHERE scene_id = ?
+        SELECT profile_id, look_id, preset_id, preset_version, image_generation_mode
+        FROM scenes WHERE scene_id = ?
       `).get(scene.scene_id);
       const presetId = scene.preset?.preset_id;
       const presetVersion = scene.preset?.version;
@@ -1117,16 +1144,17 @@ export class ProfileService {
       if (existing && (existing.profile_id !== profileId
         || existing.look_id !== lookId
         || existing.preset_id !== presetId
-        || existing.preset_version !== presetVersion)) {
+        || existing.preset_version !== presetVersion
+        || resolveImageGenerationMode(existing.image_generation_mode) !== imageGenerationMode)) {
         throw new ProfileError(404, 'SCENE_NOT_FOUND', 'Scene not found');
       }
       const createdAt = Number.isFinite(Date.parse(scene.created_at)) ? Date.parse(scene.created_at) : nowFrom(this.clock);
       const updatedAt = Number.isFinite(Date.parse(scene.updated_at)) ? Date.parse(scene.updated_at) : nowFrom(this.clock);
       database.prepare(`
         INSERT INTO scenes(
-          scene_id, profile_id, look_id, preset_id, preset_version, status,
-          output_sha256, created_at, updated_at, expires_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          scene_id, profile_id, look_id, preset_id, preset_version,
+          image_generation_mode, status, output_sha256, created_at, updated_at, expires_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(scene_id) DO UPDATE SET
           status = excluded.status,
           output_sha256 = excluded.output_sha256,
@@ -1137,6 +1165,7 @@ export class ProfileService {
         lookId,
         presetId,
         presetVersion,
+        imageGenerationMode,
         String(scene.status),
         scene.output?.sha256 ?? null,
         createdAt,
@@ -1178,7 +1207,7 @@ export class ProfileService {
   sceneProjection(profileId, sceneId) {
     const row = this.#db().prepare(`
       SELECT s.scene_id, s.look_id, s.preset_id, s.preset_version, s.status,
-             s.output_sha256, s.created_at, s.updated_at, s.expires_at
+             s.image_generation_mode, s.output_sha256, s.created_at, s.updated_at, s.expires_at
       FROM scenes s JOIN profiles p ON p.profile_id = s.profile_id
       WHERE s.scene_id = ? AND s.profile_id = ?
         AND p.revoked_at IS NULL AND p.expires_at > ?
@@ -1190,7 +1219,7 @@ export class ProfileService {
     assertAssetId(lookId, 'look id');
     if (!this.ownsLook(profileId, lookId)) return null;
     return this.#db().prepare(`
-      SELECT scene_id, look_id, preset_id, preset_version, status, output_sha256,
+      SELECT scene_id, look_id, preset_id, preset_version, status, image_generation_mode, output_sha256,
              created_at, updated_at, expires_at
       FROM scenes WHERE profile_id = ? AND look_id = ?
       ORDER BY updated_at DESC, scene_id
@@ -1206,6 +1235,7 @@ export class ProfileService {
       throw new ProfileError(400, 'INVALID_EDITORIAL_SHOOT', 'Editorial shoot projection is invalid');
     }
     assertRunId(shoot.shoot_id);
+    const imageGenerationMode = resolveImageGenerationMode(shoot.image_generation_mode);
     return this.#transaction((database) => {
       const profile = this.#activeProfile(profileId);
       const look = database.prepare(
@@ -1229,7 +1259,7 @@ export class ProfileService {
         );
       }
       const existing = database.prepare(`
-        SELECT profile_id, look_id, mode_id, mode_version
+        SELECT profile_id, look_id, mode_id, mode_version, image_generation_mode
         FROM editorial_shoots WHERE shoot_id = ?
       `).get(shoot.shoot_id);
       if (existing && (
@@ -1237,6 +1267,7 @@ export class ProfileService {
         || existing.look_id !== lookId
         || existing.mode_id !== modeId
         || existing.mode_version !== modeVersion
+        || resolveImageGenerationMode(existing.image_generation_mode) !== imageGenerationMode
       )) {
         throw new ProfileError(404, 'EDITORIAL_SHOOT_NOT_FOUND', 'Editorial shoot not found');
       }
@@ -1255,10 +1286,11 @@ export class ProfileService {
       const previewOutputSha256 = preview?.output?.sha256 ?? null;
       database.prepare(`
         INSERT INTO editorial_shoots(
-          shoot_id, profile_id, look_id, mode_id, mode_version, status,
+          shoot_id, profile_id, look_id, mode_id, mode_version,
+          image_generation_mode, status,
           approved_shot_count, hero_output_sha256, preview_slot, preview_output_sha256,
           created_at, updated_at, expires_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(shoot_id) DO UPDATE SET
           status = excluded.status,
           approved_shot_count = excluded.approved_shot_count,
@@ -1272,6 +1304,7 @@ export class ProfileService {
         lookId,
         modeId,
         modeVersion,
+        imageGenerationMode,
         shoot.status,
         approvedShotCount,
         heroOutputSha256,
@@ -1331,7 +1364,7 @@ export class ProfileService {
     const row = this.#db().prepare(`
       SELECT e.shoot_id, e.look_id, e.mode_id, e.mode_version, e.status,
              e.approved_shot_count, e.hero_output_sha256,
-             e.preview_slot, e.preview_output_sha256,
+             e.preview_slot, e.preview_output_sha256, e.image_generation_mode,
              e.created_at, e.updated_at, e.expires_at
       FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
       WHERE e.shoot_id = ? AND e.profile_id = ?
@@ -1345,7 +1378,7 @@ export class ProfileService {
     if (!this.ownsLook(profileId, lookId)) return null;
     return this.#db().prepare(`
       SELECT shoot_id, look_id, mode_id, mode_version, status, approved_shot_count,
-             hero_output_sha256, preview_slot, preview_output_sha256,
+             hero_output_sha256, preview_slot, preview_output_sha256, image_generation_mode,
              created_at, updated_at, expires_at
       FROM editorial_shoots
       WHERE profile_id = ? AND look_id = ?
@@ -2106,7 +2139,9 @@ export async function registerProfileRoutes(app, {
     if (!await runService.outputFile(runId, 'avatar_outfit.png')) {
       throw new ProfileError(409, 'LOOK_OUTPUT_MISSING', 'Completed run has no look output');
     }
-    const saved = service.saveClaimedRun(session.profileId, runId);
+    const saved = service.saveClaimedRun(session.profileId, runId, {
+      imageGenerationMode: run.image_generation_mode,
+    });
     if (typeof runService.approvedItemEvidenceForRun === 'function') {
       const garmentBacked = Array.isArray(run.inputs?.garments) && run.inputs.garments.length > 0;
       try {

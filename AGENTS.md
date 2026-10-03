@@ -1,6 +1,6 @@
 # WARDROBE agent entrypoint
 
-## Current operational handoff — 2026-10-01
+## Current operational handoff — 2026-10-03
 
 Start with `README.md`, then `docs/UNIFIED_PROJECT_MONOREPO_PLAN.md` and
 `COLLAB-BOARD.md`. The handoff is the current operational map; older live SHA,
@@ -56,6 +56,13 @@ Before every work atom and every commit, read `COLLAB-BOARD.md` and the live
 board it points to. Claim the lane, intended files, and possible intersections
 before editing. The installed pre-commit hook enforces an active non-overlapping
 claim.
+
+The coordinating root may delegate disjoint files under its existing claim.
+Native children use their assigned isolated worktrees and return patches;
+they do not create competing claims or commit, push, deploy or delete data
+unless their packet explicitly assigns that action. Root verifies the combined
+result and owns the board receipt. Read `DECISIONS.md` before revisiting a
+settled provider, source, cleanup or installation choice.
 
 The current D fabric-world journey is the visual and structural source of
 truth. Preserve it and the documented mobile/video guarantees. Do not restore

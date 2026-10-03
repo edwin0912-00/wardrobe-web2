@@ -905,6 +905,63 @@ body.profile-live-open {
   outline-offset: 2px;
 }
 
+.image-generation-mode-control {
+  display: grid;
+  grid-template-columns: auto minmax(120px, max-content);
+  align-items: center;
+  gap: 6px 12px;
+  width: fit-content;
+  margin: 10px 0;
+  color: rgba(255, 255, 255, .62);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.image-generation-mode-control select {
+  min-height: 38px;
+  min-width: 120px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 10px;
+  background: #171817;
+  color: #fff;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.image-generation-mode-control select:focus-visible {
+  outline: 2px solid #b8ff3d;
+  outline-offset: 2px;
+}
+
+.image-generation-mode-control small {
+  grid-column: 1 / -1;
+  min-height: 1em;
+  color: rgba(255, 255, 255, .64);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+#run-form .image-generation-mode-control {
+  color: var(--ink);
+}
+
+#run-form .image-generation-mode-control small {
+  color: var(--muted);
+}
+
+.image-generation-mode-status {
+  color: rgba(255, 255, 255, .68);
+  font-size: 11px;
+}
+
+.image-generation-mode-status[hidden] { display: none; }
+
 .video-input-contract {
   margin: 0 0 14px;
   padding: 12px;

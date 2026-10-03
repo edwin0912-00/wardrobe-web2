@@ -1,4 +1,5 @@
 import { errorFromApiResponse } from './error-presentation.js?v=20260804-1';
+import { resolveImageGenerationMode } from './image-generation-mode-ui.js?v=20261003-1';
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' });
 
@@ -69,6 +70,7 @@ export function createProfileEditorialShoot(lookId, {
   modeId,
   modeVersion,
   idempotencyKey,
+  imageGenerationMode = 'slow',
 }) {
   return profileRequest(`/api/profile/looks/${encodeURIComponent(lookId)}/editorial-shoots`, {
     method: 'POST',
@@ -76,6 +78,7 @@ export function createProfileEditorialShoot(lookId, {
     body: JSON.stringify({
       mode_id: modeId,
       mode_version: modeVersion,
+      image_generation_mode: resolveImageGenerationMode(imageGenerationMode),
     }),
   });
 }
@@ -190,6 +193,7 @@ export function createProfileScene(lookId, {
   presetVersion,
   expectedReferencePackSha256 = null,
   idempotencyKey,
+  imageGenerationMode = 'slow',
 }) {
   return profileRequest(`/api/profile/looks/${encodeURIComponent(lookId)}/scenes`, {
     method: 'POST',
@@ -197,6 +201,7 @@ export function createProfileScene(lookId, {
     body: JSON.stringify({
       preset_id: presetId,
       preset_version: presetVersion,
+      image_generation_mode: resolveImageGenerationMode(imageGenerationMode),
       ...(expectedReferencePackSha256
         ? { expected_reference_pack_sha256: expectedReferencePackSha256 }
         : {}),

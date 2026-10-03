@@ -84,6 +84,21 @@ test('snapshot recovery preserves request key and clears a completed pending act
   assert.equal(recovered.pending_action, null);
 });
 
+test('editorial resume pins Fast across recovery when the current preference changes', () => {
+  const fastRecord = { ...record, image_generation_mode: 'fast' };
+  const saved = writeEditorialResume(fastRecord, memoryStorage());
+  const recovered = editorialResumeFromSnapshot({
+    shoot_id: 'shoot_002',
+    bindings: {
+      approved_look: { look_id: 'look_001' },
+      shoot_bible: { mode_id: record.mode_id, mode_version: record.mode_version },
+    },
+  }, saved);
+  assert.equal(recovered.image_generation_mode, 'fast');
+  assert.equal(recovered.create_idempotency_key, saved.create_idempotency_key);
+  assert.equal(normalizeEditorialResume({ ...record, image_generation_mode: null }), null);
+});
+
 test('terminal actions and same-origin output URLs are fail-closed', () => {
   assert.equal(editorialIsTerminal({ status: 'COMPLETED' }), true);
   assert.equal(editorialCanDelete({ status: 'COMPLETED' }), true);

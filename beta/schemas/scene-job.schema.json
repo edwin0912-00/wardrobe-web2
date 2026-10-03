@@ -33,6 +33,7 @@
     "state_revision": { "type": "integer", "minimum": 1 },
     "request_fingerprint": { "$ref": "#/$defs/sha256" },
     "idempotency_hash": { "$ref": "#/$defs/sha256" },
+    "image_generation_mode": { "enum": ["slow", "fast"] },
     "status": { "enum": ["QUEUED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"] },
     "phase": { "type": "string", "minLength": 1, "maxLength": 100 },
     "message": { "type": "string", "maxLength": 500 },

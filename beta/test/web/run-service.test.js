@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -115,6 +115,115 @@ test('a caller-supplied run id makes creation idempotent without allowing unsafe
     () => service.createRun({ runId: '../outside', person: null, outfitText: '' }),
     /safe identifier/,
   );
+});
+
+test('image mode stays immutable through concurrent creation, the persisted job, and restart', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-image-mode-run-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const deps = dependencies();
+  const providerModes = [];
+  const provider = deps.provider;
+  const condition = provider.condition.bind(provider);
+  const generate = provider.generate.bind(provider);
+  provider.condition = async (context) => {
+    providerModes.push(['condition', context.imageGenerationMode]);
+    return condition(context);
+  };
+  provider.generate = async (context) => {
+    providerModes.push(['generate', context.imageGenerationMode]);
+    return generate(context);
+  };
+  const garmentModes = [];
+  const assetGenerator = {
+    generateGarment: async (context) => {
+      garmentModes.push(context.imageGenerationMode);
+      return { image: await canonical(), metadata: { provider: 'mock-garment' } };
+    },
+    generateScene: async () => ({ image: await canonical(), metadata: { provider: 'mock-scene' } }),
+  };
+  const service = new RunService({ rootDirectory: root, ...deps, provider, assetGenerator });
+  await service.initialize();
+  const runId = 'fast-mode-restart';
+  const input = {
+    runId,
+    image_generation_mode: 'fast',
+    person: await upload(),
+    garments: [await upload('#275b36')],
+    outfitText: 'preserve the exact supplied garment',
+  };
+  const creating = service.createRun(input);
+  const competingSlowCreate = service.createRun({ ...input, image_generation_mode: 'slow' });
+  await assert.rejects(
+    competingSlowCreate,
+    (error) => error.statusCode === 409 && error.code === 'IMAGE_GENERATION_MODE_CONFLICT',
+  );
+  const accepted = await creating;
+  assert.equal(accepted.image_generation_mode, 'fast');
+  await service.running.get(runId);
+
+  const persistedRun = JSON.parse(await readFile(path.join(root, runId, 'run.json'), 'utf8'));
+  const jobPath = path.join(root, runId, 'job.json');
+  const jobBytes = await readFile(jobPath);
+  const job = JSON.parse(jobBytes);
+  assert.equal(persistedRun.image_generation_mode, 'fast');
+  assert.equal(job.image_generation_mode, 'fast');
+  assert.equal((await service.imageGenerationModeForRun(runId)), 'fast');
+  assert.ok(providerModes.length > 0 && providerModes.every(([, mode]) => mode === 'fast'));
+  assert.deepEqual(garmentModes, ['fast']);
+  await assert.rejects(
+    service.createRun({ ...input, image_generation_mode: 'slow' }),
+    (error) => error.statusCode === 409 && error.code === 'IMAGE_GENERATION_MODE_CONFLICT',
+  );
+
+  await rewriteRunStatus(root, runId, 'RUNNING');
+  const restarted = new RunService({ rootDirectory: root, ...dependencies() });
+  await restarted.initialize();
+  await restarted.running.get(runId);
+  assert.equal((await restarted.getRun(runId)).image_generation_mode, 'fast');
+  assert.deepEqual(await readFile(jobPath), jobBytes, 'restart must reuse the immutable job bytes');
+});
+
+test('restart rejects a tampered job mode before garment conditioning or provider calls', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-image-mode-mismatch-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const service = new RunService({ rootDirectory: root, ...dependencies() });
+  await service.initialize();
+  const runId = 'mode-mismatch-before-work';
+  const created = await service.createRun({
+    runId,
+    person: await upload(),
+    garments: [await upload('#275b36')],
+    outfitText: 'preserve the supplied garment',
+  });
+  await service.running.get(created.run_id);
+
+  const jobPath = path.join(root, runId, 'job.json');
+  const job = JSON.parse(await readFile(jobPath, 'utf8'));
+  job.image_generation_mode = 'fast';
+  await writeFile(jobPath, `${JSON.stringify(job, null, 2)}\n`);
+  await rm(path.join(root, runId, 'conditioned', 'garments'), { recursive: true, force: true });
+  await rewriteRunStatus(root, runId, 'RUNNING');
+
+  const restartDependencies = dependencies();
+  let providerCalls = 0;
+  let garmentCalls = 0;
+  const condition = restartDependencies.provider.condition.bind(restartDependencies.provider);
+  const generate = restartDependencies.provider.generate.bind(restartDependencies.provider);
+  restartDependencies.provider.condition = async (...args) => { providerCalls += 1; return condition(...args); };
+  restartDependencies.provider.generate = async (...args) => { providerCalls += 1; return generate(...args); };
+  restartDependencies.assetGenerator.generateGarment = async () => {
+    garmentCalls += 1;
+    return { image: await canonical(), metadata: { provider: 'mock-garment' } };
+  };
+  const restarted = new RunService({ rootDirectory: root, ...restartDependencies });
+  await restarted.initialize();
+  await restarted.running.get(runId);
+
+  const failed = await restarted.getRun(runId);
+  assert.equal(failed.status, 'FAILED');
+  assert.match(failed.error.message, /image generation mode is immutable/i);
+  assert.equal(providerCalls, 0);
+  assert.equal(garmentCalls, 0);
 });
 
 test('public run state never exposes transport paths, private prompts, or project metadata', async () => {

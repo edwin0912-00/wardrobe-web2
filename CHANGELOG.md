@@ -4,6 +4,35 @@ This is the operational history of the unified `alpha` product. Git commits
 carry the exact diffs and Lore decision trailers; this file explains their
 effect on the complete product. Private inputs, receipts and keys stay off Git.
 
+## 2026-10-03 — per-job image speed and video evidence
+
+- Added the private operator questionnaire (`./setup run`) around the existing
+  full-product installation contract. Media downloads use isolated temporary
+  files and bounded timeouts while retaining byte-count, SHA and archive-path
+  checks. The installer does not provision infrastructure or provider accounts.
+- Both websites expose image-only Slow/Fast selection. Slow remains the default
+  Codex-first path with its known-safe FAL Sunburst fallback and direct FAL
+  routing above five required references; Fast routes directly to FAL Sunburst.
+  Each new run, background scene and shoot persists its choice; shoot children,
+  retries and recovery use that saved mode. Video and Live remain independent.
+- Initiating APIs accept `image_generation_mode: "slow" | "fast"`; omission
+  means Slow, invalid values return HTTP 400, and an unavailable mode returns
+  HTTP 503. `/api/health` advertises separate Slow and Fast availability. A
+  changed mode cannot replay under the same idempotency key, while old records
+  without the field retain their Slow identity.
+- A separate owner-authorized Seedance 2.5 request
+  `01a102e0-a588-7452-9b9e-1ab7b6b02afd` used only the reference-01 RGB/depth
+  video pair plus the approved-look and garment-detail images. It returned
+  HTTP 200 and a 720×1280, 24 FPS, 14.042-second MP4; the observed account
+  balance reduction was $11.105316. Sampled review found a brief gray oval mask
+  remnant and a background person. The request is a specific transport result,
+  not a polished delivery or blanket access grant. The earlier rejected jobs
+  remain terminal, and no later paid provider request is claimed.
+- See [provider routing](docs/PROVIDER-ROUTING.md) and the
+  [video-reference pipeline](docs/VIDEO-REFERENCE-PIPELINE.md) for the
+  contracts and private-state boundary. This entry does not assert source
+  publication or service activation.
+
 ## 2026-10-02 — video durability and SSD conservation
 
 - Video metadata now publishes atomically; immutable source/media/receipts publish without overwrite. File and parent-directory syncing protect completed writes; partial writes preserve the previous record and cannot poison an immutable target.
@@ -38,13 +67,15 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
   aliases for existing links.
 - `fba82ac`: aligned release locks after those fixes.
 
-Evidence: real five-reference Codex output, real Sunburst fallback output,
-real nine-reference editorial detail output and synthetic-camera Lucy WebRTC
-transport passed. Canonical local acceptance passed. Full engine verification
-had 1,183 passing cases and thirteen legacy build cases refused by the host
-swap guard. Neither actual Seedance request produced video: both returned
-`content_policy_violation` / `partner_validation_failed` for the supplied person
-references. No alternate identity/model or blind resubmission was used.
+Evidence for the original-reference 2026-10-01 candidate: real five-reference
+Codex output, real Sunburst fallback output, real nine-reference editorial
+detail output and synthetic-camera Lucy WebRTC transport passed. Canonical
+local acceptance passed. Full engine verification had 1,183 passing cases and
+thirteen legacy build cases refused by the host swap guard. Neither original-
+reference Seedance request produced video: both returned
+`content_policy_violation` / `partner_validation_failed` for the supplied
+person references. Those jobs remain terminal; no alternate identity/model or
+blind resubmission was used.
 
 ## 2026-10-01 — unified operating map
 
@@ -65,8 +96,9 @@ The approved cinematic D journey and its media/mobile guarantees were retained.
 
 ## Outstanding work
 
-- Confirm official FAL access for the supplied person references, including
-  ACR eligibility and any supported workflow for standard endpoints and 2.5.
+- Confirm official FAL access for unmodified person references, including ACR
+  eligibility and any supported workflow for standard endpoints and 2.5. The
+  separate accepted derivative request does not establish blanket access.
 - Complete resource-blocked legacy build checks on a host satisfying the
   existing guard; do not mark those tests as passed or disable the guard.
 - Add a reviewed portable installation/deployment questionnaire around the

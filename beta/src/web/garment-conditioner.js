@@ -214,6 +214,7 @@ export class GarmentConditioner {
     imagePaths,
     outputDirectory,
     runId,
+    imageGenerationMode = 'slow',
     passport: savedPassport = null,
     selections = {},
     onProgress = async () => {},
@@ -353,7 +354,7 @@ export class GarmentConditioner {
               metadata: { provider: 'deterministic-source-preservation', mode: 'ALREADY_ISOLATED_REFERENCE' },
             }
             : await this.generator.generateGarment({
-              sourcePath, sourcePaths, model, generationProfile,
+              sourcePath, sourcePaths, model, generationProfile, imageGenerationMode,
               prompt: canonicalPrompt(item, sourcePaths.length, generationProfile, attempts.at(-1)?.qa), workDirectory: itemDirectory,
               operationId: `${runId}-garment-${item.source_index}-${attempt}`,
             });

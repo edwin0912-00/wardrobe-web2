@@ -541,6 +541,9 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
     'retry_requests',
     'shots',
     'cancellation',
+    ...(state && Object.hasOwn(state, 'image_generation_mode')
+      ? ['image_generation_mode']
+      : []),
   ], 'Persisted editorial shoot');
   if (state.schema_version !== EDITORIAL_SCHEMA_VERSION) {
     throw new Error('Persisted editorial shoot has an unsupported schema version');
@@ -557,6 +560,11 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
   }
   assertEditorialSha256(state.request_fingerprint, 'request_fingerprint');
   assertEditorialSha256(state.idempotency_hash, 'idempotency_hash');
+  if (state.image_generation_mode !== undefined
+    && state.image_generation_mode !== 'slow'
+    && state.image_generation_mode !== 'fast') {
+    throw new Error('Persisted editorial shoot image_generation_mode is invalid');
+  }
   assertEditorialSha256(state.state_integrity_sha256, 'state_integrity_sha256');
   if (state.state_integrity_sha256 !== editorialStateSha256(state)) {
     throw new Error('Persisted editorial shoot state integrity hash does not match');

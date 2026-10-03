@@ -1371,6 +1371,73 @@ test('concurrent create is idempotent and a reused key cannot be rebound to diff
   );
 });
 
+test('scene image mode defaults to slow, rejects invalid values, binds Fast manifests, and survives restart', async (t) => {
+  const current = await fixture(t);
+  for (const imageGenerationMode of [null, 'turbo', 1]) {
+    await assert.rejects(
+      () => current.service.createScene({ ...current.request, imageGenerationMode }),
+      (error) => error.code === 'IMAGE_GENERATION_MODE_INVALID'
+        && error.statusCode === 400
+        && error.retryable === false,
+    );
+  }
+
+  const slow = await current.service.createScene(current.request);
+  const completedSlow = await waitFor(current.service, slow.scene_id);
+  assert.equal(completedSlow.image_generation_mode, 'slow');
+  const slowStatePath = path.join(current.service.sceneDirectory(slow.scene_id), 'scene.json');
+  const slowState = JSON.parse(await readFile(slowStatePath, 'utf8'));
+  assert.equal(slowState.image_generation_mode, 'slow');
+  const explicitSlowReplay = await current.service.createScene({
+    ...current.request,
+    imageGenerationMode: 'slow',
+  });
+  assert.equal(explicitSlowReplay.scene_id, slow.scene_id);
+  assert.equal(current.calls.generator.length, 1);
+  assert.equal(current.calls.generator[0].imageGenerationMode, 'slow');
+
+  // A pre-mode persisted scene remains readable as Slow without rewriting its record.
+  delete slowState.image_generation_mode;
+  const legacySlowBytes = Buffer.from(`${JSON.stringify(slowState, null, 2)}\n`);
+  await writeFile(slowStatePath, legacySlowBytes);
+  assert.equal((await current.service.getScene(slow.scene_id)).image_generation_mode, 'slow');
+  const legacySlowReplay = await current.service.createScene(current.request);
+  assert.equal(legacySlowReplay.image_generation_mode, 'slow');
+  assert.deepEqual(await readFile(slowStatePath), legacySlowBytes);
+  await assert.rejects(
+    () => current.service.createScene({ ...current.request, imageGenerationMode: 'fast' }),
+    (error) => error.code === 'IDEMPOTENCY_CONFLICT' && error.statusCode === 409,
+  );
+
+  const fast = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'scene-request-fast-0001',
+    imageGenerationMode: 'fast',
+  });
+  const completedFast = await waitFor(current.service, fast.scene_id);
+  assert.equal(completedFast.image_generation_mode, 'fast');
+  assert.notEqual(fast.scene_id, slow.scene_id);
+  const fastState = JSON.parse(
+    await readFile(path.join(current.service.sceneDirectory(fast.scene_id), 'scene.json'), 'utf8'),
+  );
+  assert.equal(fastState.image_generation_mode, 'fast');
+  assert.notEqual(fastState.request_fingerprint, slowState.request_fingerprint);
+  const providerManifest = JSON.parse(await readFile(path.join(
+    current.service.sceneDirectory(fast.scene_id),
+    fastState.attempts[0].provider_request_manifest.relative_path,
+  ), 'utf8'));
+  assert.equal(providerManifest.image_generation_mode, 'fast');
+  assert.equal(current.calls.generator.at(-1).imageGenerationMode, 'fast');
+
+  const restarted = new SceneService({
+    rootDirectory: current.root,
+    ...current.dependencies,
+  });
+  await restarted.initialize();
+  assert.equal((await restarted.getScene(fast.scene_id)).image_generation_mode, 'fast');
+  assert.equal(current.calls.generator.length, 2, 'restart must not submit another provider request');
+});
+
 test('separate scene requests for the same look and preset receive distinct restart-stable provider operation keys', async (t) => {
   const { service, request, calls } = await fixture(t);
   const first = await service.createScene({

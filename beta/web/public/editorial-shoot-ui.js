@@ -7,7 +7,12 @@ import {
   loadProfileEditorialShoot,
   loadProfileEditorialShootBible,
   retryProfileEditorialShot,
-} from './profile-client.js?v=20261001-1';
+} from './profile-client.js?v=20261003-1';
+import {
+  imageGenerationModeAvailable,
+  imageGenerationModeFromJob,
+  imageGenerationModeLabel,
+} from './image-generation-mode-ui.js?v=20261003-1';
 import {
   clearEditorialResume,
   EDITORIAL_SHOT_SLOTS,
@@ -20,7 +25,7 @@ import {
   readEditorialResume,
   safeEditorialOutputUrl,
   writeEditorialResume,
-} from './editorial-state.js?v=20260724-1';
+} from './editorial-state.js?v=20261003-1';
 import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
 import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 import { publicErrorCode, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
@@ -386,6 +391,8 @@ export class EditorialShootUiController {
     renderProfile,
     humanize = (value) => String(value ?? ''),
     telemetry = () => {},
+    getImageGenerationMode = () => 'slow',
+    getImageGenerationModes = () => ({ slow: { available: true }, fast: { available: false } }),
   }) {
     this.activate = activate;
     this.setLook = setLook;
@@ -393,6 +400,8 @@ export class EditorialShootUiController {
     this.renderProfile = renderProfile;
     this.humanize = humanize;
     this.telemetry = telemetry;
+    this.getImageGenerationMode = getImageGenerationMode;
+    this.getImageGenerationModes = getImageGenerationModes;
     this.shoot = null;
     this.bible = null;
     this.bibleSha256 = null;
@@ -414,6 +423,13 @@ export class EditorialShootUiController {
 
   #element(selector) {
     return document.querySelector(selector);
+  }
+
+  #setImageGenerationModeStatus(job) {
+    const status = this.#element('#scene-image-generation-mode-status');
+    if (!status) return;
+    status.textContent = `Зображення · ${imageGenerationModeLabel(imageGenerationModeFromJob(job))}`;
+    status.hidden = !job;
   }
 
   #bind() {
@@ -455,6 +471,7 @@ export class EditorialShootUiController {
   }
 
   #showConnecting(phase, message) {
+    if (this.resumeRecord || this.shoot) this.#setImageGenerationModeStatus(this.resumeRecord ?? this.shoot);
     this.#show();
     this.#setHeader('Fashion Shoot', 'ПІДГОТОВКА');
     this.#element('#editorial-phase').textContent = 'ПІДКЛЮЧАЄМО ФОТОСЕСІЮ';
@@ -555,8 +572,11 @@ export class EditorialShootUiController {
     const shootId = projection?.shoot_id ?? projection?.id;
     if (!shootId) throw new Error('Збережений Fashion Shoot не знайдено');
     this.stopWatching();
+    this.resumeRecord = null;
+    this.shoot = null;
     this.look = look;
     this.setLook(look);
+    this.#setImageGenerationModeStatus(projection);
     this.#showConnecting('FETCHING_EDITORIAL_SHOOT', 'Відновлюємо збережені кадри із сервера');
     const shoot = await loadProfileEditorialShoot(shootId);
     const fromShoot = modeFromShoot(shoot);
@@ -575,12 +595,13 @@ export class EditorialShootUiController {
       mode_id: mode.mode_id,
       mode_version: modeVersion(mode),
       create_idempotency_key: randomKey('editorial-resume'),
+      image_generation_mode: shoot.image_generation_mode ?? projection?.image_generation_mode ?? 'slow',
       pending_action: null,
     });
     this.#acceptShoot(shoot);
   }
 
-  async openForMode(mode, look) {
+  async openForMode(mode, look, imageGenerationMode = this.getImageGenerationMode()) {
     const lookId = idOfLook(look);
     const version = modeVersion(mode);
     if (!lookId) throw new Error('Збережений образ не знайдено');
@@ -588,6 +609,13 @@ export class EditorialShootUiController {
       throw new Error('Цей напрям Fashion Shoot ще не готовий до генерації');
     }
     if (!version) throw new Error('Версію Fashion Shoot напряму не опубліковано');
+    if (!imageGenerationModeAvailable(imageGenerationMode, this.getImageGenerationModes())) {
+      throw new Error(imageGenerationMode === 'fast'
+        ? 'Fast зараз недоступний. Обери Slow або дочекайся готовності сервера.'
+        : imageGenerationModeAvailable('fast', this.getImageGenerationModes())
+          ? 'Slow зараз недоступний. Обери Fast.'
+          : 'Створення зображень зараз недоступне.');
+    }
     this.stopWatching();
     this.shoot = null;
     this.bible = null;
@@ -602,6 +630,7 @@ export class EditorialShootUiController {
       mode_id: mode.mode_id,
       mode_version: version,
       create_idempotency_key: randomKey('editorial-create'),
+      image_generation_mode: imageGenerationMode,
       pending_action: {
         type: 'create',
         idempotency_key: randomKey('editorial-create-action'),
@@ -621,6 +650,7 @@ export class EditorialShootUiController {
       const shoot = await createProfileEditorialShoot(this.resumeRecord.look_id, {
         modeId: this.resumeRecord.mode_id,
         modeVersion: this.resumeRecord.mode_version,
+        imageGenerationMode: this.resumeRecord.image_generation_mode,
         idempotencyKey: this.resumeRecord.create_idempotency_key,
       });
       this.#acceptShoot(shoot);
@@ -641,6 +671,7 @@ export class EditorialShootUiController {
   #acceptShoot(shoot) {
     if (!shoot?.shoot_id) throw new Error('Сервер повернув фотосесію без shoot_id');
     this.shoot = shoot;
+    this.#setImageGenerationModeStatus(shoot);
     this.connectionFailed = false;
     this.mode = {
       ...modeFromShoot(shoot),
@@ -658,6 +689,7 @@ export class EditorialShootUiController {
       mode_id: shoot.bindings?.shoot_bible?.mode_id,
       mode_version: shoot.bindings?.shoot_bible?.mode_version,
       create_idempotency_key: randomKey('editorial-resume'),
+      image_generation_mode: shoot.image_generation_mode ?? 'slow',
       pending_action: null,
     };
     const normalized = editorialResumeFromSnapshot(shoot, previous);

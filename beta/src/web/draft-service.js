@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/p
 import path from 'node:path';
 import sharp from 'sharp';
 import { isDeepStrictEqual } from 'node:util';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 
 const COOKIE_NAME = 'zeely_draft_session';
 export const DRAFT_TTL_MS = 15 * 60 * 1000;
@@ -580,7 +581,14 @@ function publicManifest(manifest) {
   };
 }
 
-export async function registerDraftRoutes(app, { service, runService = null, profileService = null, profileApi = null, secureCookie = true }) {
+export async function registerDraftRoutes(app, {
+  service,
+  runService = null,
+  profileService = null,
+  profileApi = null,
+  secureCookie = true,
+  assertImageGenerationAvailable = null,
+}) {
   function session(request, reply) {
     const supplied = cookies(request.headers.cookie)[COOKIE_NAME];
     const id = validId(supplied) ? supplied : randomUUID();
@@ -669,6 +677,15 @@ export async function registerDraftRoutes(app, { service, runService = null, pro
   });
   app.delete('/api/draft', async (request, reply) => { await service.clear(session(request, reply)); return reply.code(204).send(); });
   if (runService) app.post('/api/draft/run', async (request, reply) => {
+    let imageGenerationMode;
+    try {
+      imageGenerationMode = resolveImageGenerationMode(request.body?.image_generation_mode);
+    } catch (error) {
+      return reply.code(error.statusCode ?? 400).send({
+        error: 'image_generation_mode must be "slow" or "fast"',
+        code: error.code,
+      });
+    }
     if (request.body?.consent !== true) return reply.code(400).send({ error: 'Consent is required for processing personal images' });
     const expectedFiles = requestedFileManifest(request.body?.file_manifest);
     const finalizationKey = request.body?.finalization_key;
@@ -809,6 +826,10 @@ export async function registerDraftRoutes(app, { service, runService = null, pro
         sourceLookId,
       });
     }
+    await runService.assertImageGenerationMode?.(resolvedRunId, imageGenerationMode);
+    if (typeof assertImageGenerationAvailable === 'function') {
+      await assertImageGenerationAvailable(imageGenerationMode);
+    }
     const run = await runService.createRun({
       person,
       identityDetail,
@@ -816,6 +837,7 @@ export async function registerDraftRoutes(app, { service, runService = null, pro
       outfitText: manifest.outfit_text,
       generateScene: false,
       approvedAvatarReference,
+      image_generation_mode: imageGenerationMode,
       ...(resolvedRunId === null ? {} : { runId: resolvedRunId }),
     });
     return reply.code(202).send(run);

@@ -6,8 +6,14 @@ import {
   loadProfileScene,
   loadScenePresets,
   retryProfileScene,
-} from './profile-client.js?v=20261001-1';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20261001-1';
+} from './profile-client.js?v=20261003-1';
+import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20261003-1';
+import {
+  imageGenerationModeAvailable,
+  imageGenerationModeFromJob,
+  imageGenerationModeLabel,
+  renderImageGenerationModeControl,
+} from './image-generation-mode-ui.js?v=20261003-1';
 import {
   clearSceneResume,
   presetCameraLabel,
@@ -21,7 +27,7 @@ import {
   sceneResumeFromSnapshot,
   sceneTone,
   writeSceneResume,
-} from './scene-state.js?v=20260724-2';
+} from './scene-state.js?v=20261003-1';
 import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 import { publicErrorCode, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 
@@ -215,6 +221,8 @@ export class SceneUiController {
     renderProfile,
     humanize = (value) => String(value ?? ''),
     telemetry = () => {},
+    getImageGenerationMode = () => 'slow',
+    getImageGenerationModes = () => ({ slow: { available: true }, fast: { available: false } }),
   }) {
     this.setView = setView;
     this.setWorkflowActive = setWorkflowActive;
@@ -222,6 +230,8 @@ export class SceneUiController {
     this.renderProfile = renderProfile;
     this.humanize = humanize;
     this.telemetry = telemetry;
+    this.getImageGenerationMode = getImageGenerationMode;
+    this.getImageGenerationModes = getImageGenerationModes;
     this.scene = null;
     this.look = null;
     this.presets = [];
@@ -247,12 +257,37 @@ export class SceneUiController {
       renderProfile: this.renderProfile,
       humanize: this.humanize,
       telemetry: this.telemetry,
+      getImageGenerationMode: this.getImageGenerationMode,
+      getImageGenerationModes: this.getImageGenerationModes,
     });
     this.#bind();
   }
 
   #element(selector) {
     return document.querySelector(selector);
+  }
+
+  #renderImageGenerationModeControls() {
+    for (const [selector, id] of [
+      ['#scene-image-generation-mode-control', 'scene-image-generation-mode'],
+      ['#shoot-image-generation-mode-control', 'shoot-image-generation-mode'],
+    ]) {
+      const host = this.#element(selector);
+      if (host) host.innerHTML = renderImageGenerationModeControl(
+        this.getImageGenerationMode(), this.getImageGenerationModes(), id,
+      );
+    }
+  }
+
+  refreshImageGenerationModeControls() {
+    this.#renderImageGenerationModeControls();
+  }
+
+  #setImageGenerationModeStatus(job) {
+    const status = this.#element('#scene-image-generation-mode-status');
+    if (!status) return;
+    status.textContent = `Зображення · ${imageGenerationModeLabel(imageGenerationModeFromJob(job))}`;
+    status.hidden = !job;
   }
 
   #bind() {
@@ -282,6 +317,7 @@ export class SceneUiController {
       const element = this.#element(name === 'editorial' ? '#editorial-shoot' : `#scene-${name}`);
       element.classList.toggle('hidden', name !== mode);
     }
+    if (mode === 'picker') this.#setImageGenerationModeStatus(null);
   }
 
   #setError(message = '') {
@@ -384,6 +420,7 @@ export class SceneUiController {
     this.phaseHistory = [];
     this.selectedPreset = null;
     this.pickerTab = initialTab === 'editorial' ? 'editorial' : 'standard';
+    this.#renderImageGenerationModeControls();
     this.#setLook(look);
     this.#activateView();
     this.#setMode('picker');
@@ -487,9 +524,20 @@ export class SceneUiController {
     // disappear from the customer catalogue.
     const newModes = this.editorialModes.filter(isReadyFashionMode);
     
-    const onSelect = (selected) => this.editorialUi.openForMode(selected, this.look).catch(
-      (error) => this.#setError(error.message),
-    );
+    const onSelect = (selected) => {
+      const imageGenerationMode = this.getImageGenerationMode();
+      if (!imageGenerationModeAvailable(imageGenerationMode, this.getImageGenerationModes())) {
+        this.#setError(imageGenerationMode === 'fast'
+          ? 'Fast зараз недоступний. Обери Slow або дочекайся готовності сервера.'
+          : imageGenerationModeAvailable('fast', this.getImageGenerationModes())
+            ? 'Slow зараз недоступний. Обери Fast.'
+            : 'Створення зображень зараз недоступне.');
+        return;
+      }
+      this.editorialUi.openForMode(selected, this.look, imageGenerationMode).catch(
+        (error) => this.#setError(error.message),
+      );
+    };
     
     gridNew.replaceChildren(...newModes.map(
       (mode, index) => createEditorialModeCard(mode, onSelect, { eager: index < 4 }),
@@ -507,6 +555,7 @@ export class SceneUiController {
   }
 
   confirmPreset(preset) {
+    this.#renderImageGenerationModeControls();
     this.pickerTab = 'standard';
     this.selectedPreset = preset;
     const host = this.#element('#scene-confirm-preset');
@@ -527,6 +576,15 @@ export class SceneUiController {
 
   async startSelected() {
     if (this.actionPending || !this.selectedPreset || !idOfLook(this.look)) return;
+    const imageGenerationMode = this.getImageGenerationMode();
+    if (!imageGenerationModeAvailable(imageGenerationMode, this.getImageGenerationModes())) {
+      this.#setError(imageGenerationMode === 'fast'
+        ? 'Fast зараз недоступний. Обери Slow або дочекайся готовності сервера.'
+        : imageGenerationModeAvailable('fast', this.getImageGenerationModes())
+          ? 'Slow зараз недоступний. Обери Fast.'
+          : 'Створення зображень зараз недоступне.');
+      return;
+    }
     const preset = this.selectedPreset;
     this.resumeRecord = writeSceneResume({
       scene_id: null,
@@ -534,6 +592,7 @@ export class SceneUiController {
       preset_id: preset.preset_id,
       preset_version: preset.preset_version,
       reference_pack_sha256: preset.reference_pack_sha256 ?? null,
+      image_generation_mode: imageGenerationMode,
       idempotency_key: randomKey('scene-create'),
     });
     this.#showConnecting('POSTING_SCENE_REQUEST', 'Надсилаємо зафіксований запит на сервер');
@@ -549,6 +608,7 @@ export class SceneUiController {
         presetId: this.resumeRecord.preset_id,
         presetVersion: this.resumeRecord.preset_version,
         expectedReferencePackSha256: this.resumeRecord.reference_pack_sha256,
+        imageGenerationMode: this.resumeRecord.image_generation_mode,
         idempotencyKey: this.resumeRecord.idempotency_key,
       });
       this.#acceptScene(scene);
@@ -568,6 +628,7 @@ export class SceneUiController {
   }
 
   #showConnecting(phase, message) {
+    this.#setImageGenerationModeStatus(this.resumeRecord ?? this.scene);
     this.#activateView();
     this.#setMode('execution');
     this.#element('#scene-output').hidden = true;
@@ -603,12 +664,14 @@ export class SceneUiController {
   #acceptScene(scene) {
     if (!scene?.scene_id) throw new Error('Сервер повернув сцену без scene_id');
     this.scene = scene;
+    this.#setImageGenerationModeStatus(scene);
     const previous = this.resumeRecord ?? {
       idempotency_key: randomKey('scene-resume'),
       look_id: scene.approved_look?.look_id,
       preset_id: scene.preset?.preset_id,
       preset_version: scene.preset?.version,
       reference_pack_sha256: scene.preset?.reference_pack_sha256 ?? null,
+      image_generation_mode: scene.image_generation_mode ?? this.resumeRecord?.image_generation_mode ?? 'slow',
     };
     const normalized = sceneResumeFromSnapshot(scene, previous);
     if (normalized) this.resumeRecord = writeSceneResume(normalized);

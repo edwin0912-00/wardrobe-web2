@@ -56,6 +56,7 @@ test('uses a relative api base and starts a run from a server draft', async () =
     file_manifest: { person: { id: 'p1' } },
     source_avatar_id: null,
     source_look_id: null,
+    image_generation_mode: 'slow',
   });
   assert.equal(FakeEventSource.instances.at(-1).url, '/api/runs/run-1/events');
   assert.equal(client.snapshot().phase, 'running');
@@ -77,6 +78,76 @@ test('passes idempotency headers for scene and shoot mutations', async () => {
 
   assert.equal(calls[0].options.headers['Idempotency-Key'], 'scene-key');
   assert.equal(calls[1].options.headers['Idempotency-Key'], 'shoot-key');
+});
+
+test('serializes Slow and Fast for multipart looks, backgrounds, and photoshoots', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      if (url.includes('/scenes')) return jsonResponse({ scene_id: `scene-${calls.length}`, status: 'QUEUED' }, 202);
+      if (url.includes('/editorial-shoots')) return jsonResponse({ shoot_id: `shoot-${calls.length}`, status: 'QUEUED' }, 202);
+      return jsonResponse({ run_id: `run-${calls.length}`, status: 'QUEUED' }, 202);
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  for (const mode of ['slow', 'fast']) {
+    await client.createRunFromUploads({
+      person: new File(['person'], 'person.png', { type: 'image/png' }),
+      garments: [new File(['garment'], 'garment.png', { type: 'image/png' })],
+      imageGenerationMode: mode,
+    });
+    await client.createScene('look-1', {
+      presetId: 'std.room', presetVersion: '1', imageGenerationMode: mode, idempotencyKey: `scene-${mode}`,
+    });
+    await client.createShoot('look-1', {
+      modeId: 'shoot.editorial', modeVersion: '1', imageGenerationMode: mode, idempotencyKey: `shoot-${mode}`,
+    });
+  }
+
+  for (const [index, mode] of ['slow', 'fast'].entries()) {
+    const upload = calls[index * 3];
+    const scene = calls[index * 3 + 1];
+    const shoot = calls[index * 3 + 2];
+    assert.equal(upload.options.body.get('image_generation_mode'), mode);
+    assert.equal(JSON.parse(scene.options.body).image_generation_mode, mode);
+    assert.equal(JSON.parse(shoot.options.body).image_generation_mode, mode);
+  }
+});
+
+test('captures the requested draft mode before a pending request can outlive a preference change', async () => {
+  let resolveFetch;
+  let body;
+  const client = createZeelyClient({
+    fetchImpl: async (_url, options) => {
+      body = JSON.parse(options.body);
+      return new Promise((resolve) => { resolveFetch = resolve; });
+    },
+    EventSourceImpl: FakeEventSource,
+    createFinalizationKey: () => '1fce992c-2139-4d12-b8b4-0c361f8a72e9',
+  });
+  let preference = 'fast';
+  const request = client.createRunFromDraft({ fileManifest: { person: { id: 'p1' } }, imageGenerationMode: preference });
+  preference = 'slow';
+  assert.equal(body.image_generation_mode, 'fast');
+  resolveFetch(jsonResponse({ run_id: 'run-snapshot', status: 'QUEUED' }, 202));
+  await request;
+  assert.equal(preference, 'slow');
+  assert.equal(body.image_generation_mode, 'fast');
+});
+
+test('rejects invalid image modes before sending a request', async () => {
+  let requestCount = 0;
+  const client = createZeelyClient({
+    fetchImpl: async () => { requestCount += 1; return jsonResponse({ run_id: 'never' }, 202); },
+    EventSourceImpl: FakeEventSource,
+  });
+  await assert.rejects(
+    client.createRunFromDraft({ fileManifest: { person: { id: 'p1' } }, imageGenerationMode: 'quick' }),
+    /must be slow or fast/,
+  );
+  assert.equal(requestCount, 0);
 });
 
 test('SSE updates state and a stale watcher cannot close its replacement', () => {

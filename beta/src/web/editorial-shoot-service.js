@@ -15,6 +15,9 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 import {
+  resolveImageGenerationMode,
+} from '../providers/image-generation-mode.js';
+import {
   EDITORIAL_HERO_SLOT,
   EDITORIAL_AUTO_REPAIR_MAX_RETRIES,
   EDITORIAL_SCHEMA_VERSION,
@@ -936,7 +939,9 @@ export class EditorialShootService {
     idempotencyKey,
     approvedLookReference,
     shootBible,
+    imageGenerationMode: requestedImageGenerationMode,
   }) {
+    const imageGenerationMode = resolveImageGenerationMode(requestedImageGenerationMode);
     assertEditorialIdempotencyKey(idempotencyKey);
     const approvedLook = validateEditorialApprovedLookReference(approvedLookReference);
     const bible = validateEditorialShootBible(shootBible);
@@ -947,11 +952,15 @@ export class EditorialShootService {
     const shotSpecHashes = Object.fromEntries(
       bible.shots.map((shot) => [shot.slot, editorialShotSpecSha256(shot)]),
     );
-    const requestFingerprint = sha256(canonicalJsonBytes({
+    const fingerprintInput = {
       approved_look: approvedLook,
       bible_sha256: bibleSha256,
       shot_spec_hashes: shotSpecHashes,
       scheduler_max_concurrency: FASHION_SHOOT_FRAME_CONCURRENCY,
+    };
+    const requestFingerprint = sha256(canonicalJsonBytes({
+      ...fingerprintInput,
+      ...(imageGenerationMode === 'fast' ? { image_generation_mode: 'fast' } : {}),
     }));
     const legacyRequestFingerprint = sha256(canonicalJsonBytes({
       approved_look: approvedLook,
@@ -963,7 +972,8 @@ export class EditorialShootService {
     const existing = await this.#read(shootId);
     if (existing) {
       if (existing.request_fingerprint !== requestFingerprint
-        && existing.request_fingerprint !== legacyRequestFingerprint) {
+        && !(imageGenerationMode === 'slow'
+          && existing.request_fingerprint === legacyRequestFingerprint)) {
         throw new EditorialShootServiceError(
           409,
           'IDEMPOTENCY_CONFLICT',
@@ -978,7 +988,8 @@ export class EditorialShootService {
       const raced = await this.#read(shootId);
       if (raced) {
         if (raced.request_fingerprint !== requestFingerprint
-          && raced.request_fingerprint !== legacyRequestFingerprint) {
+          && !(imageGenerationMode === 'slow'
+            && raced.request_fingerprint === legacyRequestFingerprint)) {
           throw new EditorialShootServiceError(
             409,
             'IDEMPOTENCY_CONFLICT',
@@ -997,6 +1008,7 @@ export class EditorialShootService {
         state_integrity_sha256: ZERO_SHA256,
         request_fingerprint: requestFingerprint,
         idempotency_hash: idempotencyHash,
+        image_generation_mode: imageGenerationMode,
         status: EDITORIAL_SHOOT_STATES.BIBLE_PENDING_APPROVAL,
         phase: 'BIBLE_REVIEW',
         message: 'ShootBible is persisted and awaits explicit approval',
@@ -1401,6 +1413,7 @@ export class EditorialShootService {
         : runningState.shots[0].output;
       const rawResult = await this.sceneExecutor.executeShot({
         shoot_id: shootId,
+        image_generation_mode: resolveImageGenerationMode(runningState.image_generation_mode),
         slot,
         attempt: attempt.number,
         operation_id: operationId,

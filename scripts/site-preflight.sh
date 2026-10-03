@@ -23,6 +23,7 @@ console.log(`inline scripts parsed: ${scripts.length}`);
 EOF
 
 node --test test/*.test.mjs
+python3 -m unittest discover -s test -p 'operator_setup_test.py'
 git diff --check
 
 echo "site preflight passed"

@@ -1,3 +1,5 @@
+import { resolveImageGenerationMode } from './image-generation-mode-ui.js?v=20261003-1';
+
 export const ACTIVE_EDITORIAL_SHOOT_KEY = 'zeely_active_editorial_shoot_v1';
 
 export const EDITORIAL_SHOT_SLOTS = Object.freeze([
@@ -70,6 +72,9 @@ export function normalizeEditorialResume(value) {
   const modeVersion = String(value.mode_version ?? '');
   const createIdempotencyKey = String(value.create_idempotency_key ?? '');
   const pendingAction = normalizePendingAction(value.pending_action);
+  let imageGenerationMode;
+  try { imageGenerationMode = resolveImageGenerationMode(value.image_generation_mode); }
+  catch { return null; }
   if (shootId !== null && !safeId(shootId)) return null;
   if (!safeId(lookId) || !safeId(modeId) || !SEMVER.test(modeVersion)) return null;
   if (createIdempotencyKey.length < 8 || createIdempotencyKey.length > 256) return null;
@@ -81,6 +86,7 @@ export function normalizeEditorialResume(value) {
     mode_id: modeId,
     mode_version: modeVersion,
     create_idempotency_key: createIdempotencyKey,
+    image_generation_mode: imageGenerationMode,
     pending_action: pendingAction,
     updated_at: typeof value.updated_at === 'string'
       ? value.updated_at
@@ -132,6 +138,10 @@ export function editorialResumeFromSnapshot(shoot, previous = {}) {
       ?? shoot?.mode?.version
       ?? shoot?.mode_version
       ?? previous.mode_version,
+    image_generation_mode: shoot?.image_generation_mode
+      ?? shoot?.bindings?.image_generation_mode
+      ?? previous.image_generation_mode
+      ?? 'slow',
     pending_action: null,
   });
 }

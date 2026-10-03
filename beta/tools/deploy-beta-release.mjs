@@ -175,15 +175,18 @@ async function exists(target) {
   try { await lstat(target); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; }
 }
 
-async function waitForHealth(url, timeoutMs = 60_000) {
+export async function waitForHealth(url, expectedRelease, timeoutMs = 60_000) {
   const until = Date.now() + timeoutMs;
   let last = null;
   while (Date.now() < until) {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(5_000) });
       const body = await response.json();
-      if (response.ok && body?.status === 'ready') return body;
-      last = `HTTP ${response.status}`;
+      if (response.ok && body?.status === 'ready') {
+        if (body.release_sha === expectedRelease.base_commit
+          && body.cache_token === expectedRelease.cache_token) return body;
+        last = 'ready response belongs to a different release or cache token';
+      } else last = `HTTP ${response.status}`;
     } catch (error) { last = error.message; }
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
@@ -237,8 +240,8 @@ async function main() {
   const domain = `gui/${process.getuid()}/${BETA_LABEL}`;
   try {
     await execute('/bin/launchctl', ['kickstart', '-k', domain]);
-    const local = await waitForHealth(options.local_health_url);
-    const external = await waitForHealth(options.external_health_url);
+    const local = await waitForHealth(options.local_health_url, verified);
+    const external = await waitForHealth(options.external_health_url, verified);
     const receipt = { ...plan, activated_at: new Date().toISOString(), local_status: local.status, external_status: external.status, runner_backup_sha256: createHash('sha256').update(runnerBefore).digest('hex') };
     await writeFile(path.join(nextRoot, 'ops/beta-activation-receipt.json'), `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
     process.stdout.write(`${JSON.stringify(receipt)}\n`);

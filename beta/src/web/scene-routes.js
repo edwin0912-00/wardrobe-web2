@@ -1,4 +1,5 @@
 import { createReadStream } from 'node:fs';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 import { ProfileError } from './profile-service.js';
 import { sendPresentationImage } from './presentation-preview.js';
 
@@ -95,9 +96,13 @@ export async function registerSceneRoutes(app, {
   runService,
   presetResolver,
   editorialShootService = null,
+  assertImageGenerationAvailable = async () => {},
 } = {}) {
   if (!sceneService || !profiles || !profileApi || !runService || !presetResolver) {
     throw new Error('registerSceneRoutes requires sceneService, profiles, profileApi, runService and presetResolver');
+  }
+  if (typeof assertImageGenerationAvailable !== 'function') {
+    throw new Error('registerSceneRoutes assertImageGenerationAvailable must be a function');
   }
   // A user opening Fashion Shoot must only read already-verified presentation
   // data. Fail the server startup if the immutable catalog or previews do not
@@ -180,12 +185,15 @@ export async function registerSceneRoutes(app, {
   app.post('/api/profile/looks/:lookId/scenes', async (request, reply) => {
     sameOriginMutation(request);
     const session = await profileApi.resolveRequestProfile(request, reply);
+    const imageGenerationMode = resolveImageGenerationMode(request.body?.image_generation_mode);
+    const key = idempotencyKey(request);
+    const presetInput = requiredPreset(request.body);
+    await assertImageGenerationAvailable(imageGenerationMode);
     const approvedLookReference = await profiles.approvedLookReference(
       session.profileId,
       request.params.lookId,
       runService,
     );
-    const presetInput = requiredPreset(request.body);
     const presetReference = await presetResolver.presetReference(presetInput);
     if (request.body?.expected_reference_pack_sha256 !== undefined
       && request.body.expected_reference_pack_sha256 !== presetReference.reference_pack_sha256) {
@@ -196,9 +204,10 @@ export async function registerSceneRoutes(app, {
       );
     }
     const scene = await sceneService.createScene({
-      idempotencyKey: idempotencyKey(request),
+      idempotencyKey: key,
       approvedLookReference,
       presetReference,
+      imageGenerationMode,
     });
     profiles.projectScene(session.profileId, request.params.lookId, scene);
     // Close the publication race where a very fast provider advances between
@@ -301,14 +310,20 @@ export async function registerSceneRoutes(app, {
   app.post('/api/profile/scenes/:sceneId/retry', async (request, reply) => {
     sameOriginMutation(request);
     const session = await profileApi.resolveRequestProfile(request, reply);
-    const projection = profiles.sceneProjection(session.profileId, request.params.sceneId);
-    if (!projection) return reply.code(404).send({ error: 'Scene not found' });
-    const scene = await sceneService.retryScene(request.params.sceneId, {
-      idempotencyKey: idempotencyKey(request),
+    const owned = await currentOwnedScene({
+      profiles,
+      profileId: session.profileId,
+      sceneService,
+      sceneId: request.params.sceneId,
     });
-    if (scene.approved_look?.look_id !== projection.look_id) {
-      return reply.code(404).send({ error: 'Scene not found' });
-    }
+    if (!owned) return reply.code(404).send({ error: 'Scene not found' });
+    const key = idempotencyKey(request);
+    await assertImageGenerationAvailable(
+      resolveImageGenerationMode(owned.image_generation_mode),
+    );
+    const scene = await sceneService.retryScene(request.params.sceneId, {
+      idempotencyKey: key,
+    });
     profiles.syncSceneProjection(scene);
     return reply.code(202).send(profileSceneView(scene));
   });

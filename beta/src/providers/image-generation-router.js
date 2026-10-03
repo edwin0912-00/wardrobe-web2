@@ -1,3 +1,5 @@
+import { resolveImageGenerationMode } from './image-generation-mode.js';
+
 /**
  * Deterministic image transport policy.
  *
@@ -50,17 +52,18 @@ function canTryFallback(error) {
 }
 
 export class ImageGenerationRouterError extends Error {
-  constructor(message, { code = 'IMAGE_GENERATION_ROUTER_ERROR', retryable = false, cause, attempts = [] } = {}) {
+  constructor(message, { code = 'IMAGE_GENERATION_ROUTER_ERROR', statusCode, retryable = false, cause, attempts = [] } = {}) {
     super(message, cause ? { cause } : undefined);
     this.name = 'ImageGenerationRouterError';
     this.code = code;
+    if (statusCode !== undefined) this.statusCode = statusCode;
     this.retryable = retryable;
     this.attempts = attempts;
   }
 }
 
 export class ImageGenerationRouter {
-  constructor({ primary, fallbacks = [], generationRoute = null } = {}) {
+  constructor({ primary, fallbacks = [], fastProvider = null, generationRoute = null } = {}) {
     if (!primary || typeof primary.generate !== 'function') {
       throw new TypeError('primary image provider must implement generate()');
     }
@@ -69,6 +72,10 @@ export class ImageGenerationRouter {
     }
     this.primary = primary;
     this.fallbacks = [...fallbacks];
+    this.fastProvider = fastProvider ?? this.fallbacks.find((provider) => provider.providerName === 'fal-gpt-image-2.5-sunburst') ?? null;
+    if (this.fastProvider && typeof this.fastProvider.generate !== 'function') {
+      throw new TypeError('fast image provider must implement generate()');
+    }
     this.providers = Object.freeze([primary, ...this.fallbacks]);
     this.providerName = 'codex-primary-fal-fallback';
     this.primaryProbeError = null;
@@ -91,6 +98,16 @@ export class ImageGenerationRouter {
     };
   }
 
+  imageGenerationModes() {
+    const primaryStatus = this.primaryProbeError
+      ? 'degraded'
+      : this.primary.healthStatus?.().status;
+    return {
+      slow: { available: (primaryStatus === undefined || primaryStatus === 'ready') || this.fallbacks.length > 0 },
+      fast: { available: Boolean(this.fastProvider) },
+    };
+  }
+
   async probe() {
     try {
       const status = typeof this.primary.probe === 'function' ? await this.primary.probe() : this.healthStatus();
@@ -104,11 +121,17 @@ export class ImageGenerationRouter {
   }
 
   async condition(context) {
+    // Codex's condition() is local passthrough validation; it never dispatches
+    // to the worker. Keep the shared conditioning and QA path for both modes.
+    resolveImageGenerationMode(context?.imageGenerationMode);
     if (typeof this.primary.condition !== 'function') return context;
     return this.primary.condition(context);
   }
 
   async generate(context) {
+    const imageGenerationMode = resolveImageGenerationMode(context?.imageGenerationMode);
+    if (imageGenerationMode === 'fast') return this.#generateFast(context);
+
     const attempts = [];
     const referenceCount = Array.isArray(context?.references?.ordered) ? context.references.ordered.length : null;
     for (const [index, provider] of this.providers.entries()) {
@@ -130,6 +153,7 @@ export class ImageGenerationRouter {
             ...(response?.metadata ?? {}),
             routing: {
               policy: this.providerName,
+              image_generation_mode: 'slow',
               selected: name,
               fallback_used: index > 0,
               attempts: [...attempts, { provider: name, outcome: 'SUCCEEDED' }],
@@ -155,6 +179,38 @@ export class ImageGenerationRouter {
     throw new ImageGenerationRouterError('No image transport is configured', { attempts });
   }
 
+  async #generateFast(context) {
+    const provider = this.fastProvider;
+    if (!provider) {
+      throw new ImageGenerationRouterError('Fast image generation is not configured', {
+        code: 'IMAGE_GENERATION_MODE_UNAVAILABLE', statusCode: 503, retryable: false,
+      });
+    }
+    const name = providerName(provider, 'fal-gpt-image-2.5-sunburst');
+    const referenceCount = Array.isArray(context?.references?.ordered) ? context.references.ordered.length : null;
+    const maxReferences = Number.isInteger(provider.maxOrderedReferences) ? provider.maxOrderedReferences : null;
+    if (maxReferences !== null && referenceCount !== null && referenceCount > maxReferences) {
+      throw new ImageGenerationRouterError('Fast image provider cannot accept every required reference', {
+        code: 'NO_CAPABLE_IMAGE_PROVIDER', retryable: false,
+        attempts: [{ provider: name, outcome: 'SKIPPED', reason: 'REFERENCE_LIMIT', reference_count: referenceCount, max_ordered_references: maxReferences }],
+      });
+    }
+    const response = await provider.generate(context);
+    return {
+      ...response,
+      metadata: {
+        ...(response?.metadata ?? {}),
+        routing: {
+          policy: 'fal-fast',
+          image_generation_mode: 'fast',
+          selected: name,
+          fallback_used: false,
+          attempts: [{ provider: name, outcome: 'SUCCEEDED' }],
+        },
+      },
+    };
+  }
+
   async qa(context) {
     // Semantic QA is transport-independent and uses the configured VLM. Keep
     // the primary provider's contract for receipts and evaluator attestations.
@@ -164,6 +220,7 @@ export class ImageGenerationRouter {
 
   async close() {
     for (const provider of this.providers) await provider.close?.();
+    if (this.fastProvider && !this.providers.includes(this.fastProvider)) await this.fastProvider.close?.();
   }
 }
 

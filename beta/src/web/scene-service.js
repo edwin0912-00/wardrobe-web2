@@ -16,6 +16,10 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
+import {
+  DEFAULT_IMAGE_GENERATION_MODE,
+  resolveImageGenerationMode,
+} from '../providers/image-generation-mode.js';
 import { sanitizeOutbound, sanitizeOutboundString } from '../security/outbound-redaction.js';
 import {
   approvedItemEvidenceDocument,
@@ -912,6 +916,7 @@ function publicScene(state) {
   const currentAttempt = state.attempts.at(-1) ?? null;
   return sanitizeOutbound({
     scene_id: state.scene_id,
+    image_generation_mode: state.image_generation_mode ?? DEFAULT_IMAGE_GENERATION_MODE,
     status: state.status,
     phase: state.phase,
     message: state.message,
@@ -1807,7 +1812,19 @@ function fallbackProviderRequestManifest({
     preset_sha256: state.bindings.preset.sha256,
     reference_pack_sha256: state.bindings.reference_pack.sha256,
     repair_plan_sha256: repairPlan ? repairPlanDigest(repairPlan) : null,
+    ...(state.image_generation_mode === 'fast' ? { image_generation_mode: 'fast' } : {}),
   });
+}
+
+function assertProviderRequestMode(manifest, imageGenerationMode) {
+  const manifestMode = manifest.image_generation_mode ?? DEFAULT_IMAGE_GENERATION_MODE;
+  if ((manifestMode !== 'slow' && manifestMode !== 'fast') || manifestMode !== imageGenerationMode) {
+    throw new SceneServiceError(
+      409,
+      'BOUND_INPUT_INTEGRITY_FAILED',
+      'Scene provider request mode does not match its persisted generation mode',
+    );
+  }
 }
 
 async function prepareProviderRequestManifest(generator, context, fallback) {
@@ -3341,7 +3358,9 @@ export class SceneService {
     approvedLookReference,
     presetReference,
     shotAnchorReferences = null,
+    imageGenerationMode: requestedImageGenerationMode,
   }) {
+    const imageGenerationMode = resolveImageGenerationMode(requestedImageGenerationMode);
     assertIdempotencyKey(idempotencyKey);
     const approvedLook = validateApprovedLookReference(approvedLookReference);
     const preset = validatePresetReference(presetReference);
@@ -3360,10 +3379,16 @@ export class SceneService {
       } : {}),
       delivery: this.delivery,
       model_route_sha256: sha256(routeBytes),
+      ...(imageGenerationMode === 'fast' ? { image_generation_mode: 'fast' } : {}),
     }));
 
     const pending = this.creating.get(sceneId);
-    if (pending) return pending;
+    if (pending) {
+      if (pending.requestFingerprint !== requestFingerprint) {
+        throw new SceneServiceError(409, 'IDEMPOTENCY_CONFLICT', 'The idempotency key is already bound to a different scene request');
+      }
+      return pending.promise;
+    }
     if (await this.#readTombstone(sceneId)) {
       throw new SceneServiceError(410, 'SCENE_DELETED', 'This idempotent scene request was permanently deleted');
     }
@@ -3376,7 +3401,12 @@ export class SceneService {
       return publicScene(existing);
     }
     const raced = this.creating.get(sceneId);
-    if (raced) return raced;
+    if (raced) {
+      if (raced.requestFingerprint !== requestFingerprint) {
+        throw new SceneServiceError(409, 'IDEMPOTENCY_CONFLICT', 'The idempotency key is already bound to a different scene request');
+      }
+      return raced.promise;
+    }
 
     const creation = this.#withSceneLock(sceneId, 'create', async () => {
       if (await this.#readTombstone(sceneId)) {
@@ -3402,9 +3432,12 @@ export class SceneService {
         presetReference: preset,
         shotAnchorReferences: shotAnchors,
         routeBytes,
+        imageGenerationMode,
       });
-    }, { waitMs: 30_000 }).finally(() => this.creating.delete(sceneId));
-    this.creating.set(sceneId, creation);
+    }, { waitMs: 30_000 }).finally(() => {
+      if (this.creating.get(sceneId)?.promise === creation) this.creating.delete(sceneId);
+    });
+    this.creating.set(sceneId, { requestFingerprint, promise: creation });
     return creation;
   }
 
@@ -3416,6 +3449,7 @@ export class SceneService {
     presetReference,
     shotAnchorReferences,
     routeBytes,
+    imageGenerationMode,
   }) {
     const [resolvedLook, resolvedPreset] = await Promise.all([
       this.approvedLookResolver.resolveApprovedLook(approvedLookReference),
@@ -3608,6 +3642,7 @@ export class SceneService {
       state_revision: 1,
       request_fingerprint: requestFingerprint,
       idempotency_hash: idempotencyHash,
+      image_generation_mode: imageGenerationMode,
       status: SCENE_STATES.QUEUED,
       phase: 'BOUND',
       message: 'Approved look and scene preset are immutably bound',
@@ -4497,6 +4532,7 @@ export class SceneService {
     );
     const baseGenerationContext = {
       scene_id: sceneId,
+      imageGenerationMode: resolveImageGenerationMode(state.image_generation_mode),
       attempt: attempt.number,
       cycle: attempt.cycle,
       cycle_attempt: attempt.cycle_attempt,
@@ -4551,6 +4587,10 @@ export class SceneService {
         promptSha256: attempt.compiled_prompt.sha256,
         repairPlan,
       }),
+    );
+    assertProviderRequestMode(
+      preparedRequest.manifest,
+      baseGenerationContext.imageGenerationMode,
     );
     const providerRequestRelativePath = `attempts/${String(attempt.number).padStart(3, '0')}/provider-request-manifest.json`;
     const providerRequestReceipt = await writeOrVerifyImmutableArtifact(

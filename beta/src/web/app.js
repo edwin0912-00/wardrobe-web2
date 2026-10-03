@@ -26,6 +26,7 @@ import {
 import { registerHeicConversionRoute } from './heic-converter.js';
 import { registerGodViewRoutes } from './god-view-routes.js';
 import { registerTestAuditRoutes } from './test-audit-routes.js';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 
 const PUBLIC_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,119}$/;
 const PUBLIC_ERROR_COPY = Object.freeze({
@@ -34,6 +35,7 @@ const PUBLIC_ERROR_COPY = Object.freeze({
   PROVIDER_JOB_FAILED: 'Постачальник завершив цю спробу без результату.',
   PROVIDER_COMMAND_FAILED: 'Постачальник не зміг завершити запит.',
   MODEL_RESPONSE_MISMATCH: 'Відповідь моделі не відповідає очікуваному маршруту.',
+  IMAGE_GENERATION_MODE_UNAVAILABLE: 'Обраний режим генерації зображень тимчасово недоступний.',
   IMAGE_TOO_SMALL: 'Це зображення замале для надійної підготовки.',
   UNSUPPORTED_MEDIA_TYPE: 'Цей формат зображення не підтримується.',
 });
@@ -71,10 +73,6 @@ export async function createWebApp({
   godViewAuth = null,
   testAudit = null,
 }) {
-  // A degraded provider preflight means the configured Codex/OpenRouter image
-  // policy is not ready. Do not let a user enter the pipeline only to fail later with an
-  // ambiguous provider-create message.
-  //
   // `health` is the boot snapshot; `healthProvider` is the latest cached
   // provider preflight. The latter matters when a short CLI/network failure
   // occurs exactly while the daemon starts: a later healthy preflight must
@@ -91,16 +89,27 @@ export async function createWebApp({
     return resolved;
   };
   const generationAvailable = (resolvedHealth) => ['ready', 'ok'].includes(resolvedHealth?.status);
-  const generationTrigger = (request) => {
-    if (request.method !== 'POST') return false;
-    const pathname = request.url.split('?')[0];
-    return pathname === '/api/runs'
-      || pathname === '/api/draft/run'
-      || /^\/api\/runs\/[^/]+\/(?:retry|garment-selection)$/.test(pathname)
-      || /^\/api\/profile\/looks\/[^/]+\/scenes$/.test(pathname)
-      || /^\/api\/profile\/scenes\/[^/]+\/retry$/.test(pathname)
-      || /^\/api\/profile\/editorial-shoots\/[^/]+\/(?:approve-bible|approve-hero)$/.test(pathname)
-      || /^\/api\/profile\/editorial-shoots\/[^/]+\/shots\/[^/]+\/retry$/.test(pathname);
+  const imageGenerationModes = (resolvedHealth) => {
+    const hardRuntimeAvailable = !resolvedHealth?.runtime_status || resolvedHealth.runtime_status === 'ready';
+    const advertised = resolvedHealth?.image_generation_modes;
+    return {
+      slow: {
+        available: hardRuntimeAvailable && (typeof advertised?.slow?.available === 'boolean'
+          ? advertised.slow.available
+          : generationAvailable(resolvedHealth)),
+      },
+      fast: { available: hardRuntimeAvailable && advertised?.fast?.available === true },
+    };
+  };
+  const assertImageGenerationAvailable = async (value) => {
+    const mode = resolveImageGenerationMode(value);
+    const resolved = await currentHealth();
+    if (imageGenerationModes(resolved)[mode].available) return mode;
+    const error = new Error('Image generation mode is currently unavailable');
+    error.statusCode = 503;
+    error.code = 'IMAGE_GENERATION_MODE_UNAVAILABLE';
+    error.retryable = false;
+    throw error;
   };
   const app = Fastify({
     logger,
@@ -114,17 +123,6 @@ export async function createWebApp({
     for (const cleanup of [...activeSseCleanups]) cleanup();
   });
   installDemoAuth(app, auth);
-  app.addHook('onRequest', async (request, reply) => {
-    if (!generationTrigger(request) || generationAvailable(await currentHealth())) return;
-    return reply
-      .header('Retry-After', '60')
-      .code(503)
-      .send({
-        error: 'Генерація тимчасово недоступна: перевірте активний транспорт і fallback.',
-        code: 'GENERATION_UNAVAILABLE',
-        next_action: 'RETRY_AFTER_PROVIDER_READY',
-      });
-  });
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await registerHeicConversionRoute(app);
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
@@ -220,6 +218,7 @@ export async function createWebApp({
       runService: service,
       presetResolver: scenePresetResolver,
       editorialShootService,
+      assertImageGenerationAvailable,
     });
   }
   if (editorialShootService) {
@@ -230,6 +229,7 @@ export async function createWebApp({
       runService: service,
       presetResolver: scenePresetResolver,
       sceneService,
+      assertImageGenerationAvailable,
     });
   }
   if (videoService && profileApi && profiles) {
@@ -258,6 +258,7 @@ export async function createWebApp({
     profileService: profiles,
     profileApi,
     secureCookie,
+    assertImageGenerationAvailable,
   });
 
   async function ownsRun(request, reply) {
@@ -314,6 +315,7 @@ export async function createWebApp({
       status,
       service: 'web',
       generation: available ? 'available' : 'unavailable',
+      image_generation_modes: imageGenerationModes(resolved),
       semantic_qa: 'available',
       fashion_shoot_qa_mode: ['strict', 'review', 'off']
         .includes(resolved.fashion_shoot_qa_mode)
@@ -339,6 +341,16 @@ export async function createWebApp({
         else if (part.fieldname === 'garment_images') uploads.garments.push(upload);
       } else fields[part.fieldname] = part.value;
     }
+    let imageGenerationMode;
+    try {
+      imageGenerationMode = resolveImageGenerationMode(fields.image_generation_mode);
+    } catch (error) {
+      return reply.code(error.statusCode ?? 400).send({
+        error: 'image_generation_mode must be "slow" or "fast"',
+        code: error.code,
+      });
+    }
+    await assertImageGenerationAvailable(imageGenerationMode);
     if (monitor) await monitor.append({
       source: 'server', type: 'run.upload_received',
       data: {
@@ -361,6 +373,7 @@ export async function createWebApp({
       garments: uploads.garments,
       outfitText: String(fields.outfit_text ?? ''),
       generateScene: false,
+      image_generation_mode: imageGenerationMode,
     });
     if (profileApi) await profileApi.claimRunForRequest(request, reply, run.run_id, { sourceAvatarId: null });
     return reply.code(202).send(run);
@@ -425,6 +438,7 @@ export async function createWebApp({
   app.post('/api/runs/:id/retry', async (request, reply) => {
     if (!await ownsRun(request, reply)) return reply;
     try {
+      await assertImageGenerationAvailable(await service.imageGenerationModeForRun?.(request.params.id));
       const run = await service.retry(request.params.id);
       return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
     } catch (error) {
@@ -435,6 +449,7 @@ export async function createWebApp({
 
   app.post('/api/runs/:id/garment-selection', async (request, reply) => {
     if (!await ownsRun(request, reply)) return reply;
+    await assertImageGenerationAvailable(await service.imageGenerationModeForRun?.(request.params.id));
     const run = await service.selectGarments(request.params.id, request.body?.selections);
     return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
   });
@@ -538,7 +553,9 @@ export async function createWebApp({
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
-    const statusCode = error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
+    const statusCode = error.code === 'IMAGE_GENERATION_MODE_UNAVAILABLE'
+      ? 503
+      : error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
     const code = publicErrorCode(error.code);
     const publicMessage = publicErrorMessage(error, code);
     if (monitor) monitor.append({
@@ -571,6 +588,7 @@ export async function createWebApp({
         : [];
       payload.next_action = nextAction ?? 'REPLACE_INPUT';
     }
+    if (statusCode === 503) reply.header('Retry-After', '60');
     reply.code(statusCode).send(payload);
   });
 

@@ -1131,6 +1131,13 @@ body {
   font-size: clamp(10px, 2.2cqh, 12px);
   letter-spacing: 0.08em; color: rgba(245,243,237,0.74);
 }
+.orbfield__mode {
+  position: absolute; left: 0; right: 0; top: 6%;
+  text-align: center;
+  color: rgba(245,243,237,0.62);
+  font: 600 9px/1.2 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.08em;
+}
 .orbfield--error {
   align-content: center;
   justify-items: center;
@@ -1223,6 +1230,44 @@ body {
  * image-first tiles rather than technical select menus, and their media wells can accept
  * beta preview URLs later without changing the layout or interaction contract. */
 .pickerlede { margin-top: clamp(4px, 1.5cqh, 8px); max-width: 34em; }
+.image-generation-mode-choice {
+  display: grid;
+  grid-template-columns: auto minmax(110px, 1fr);
+  align-items: center;
+  gap: 5px 10px;
+  width: min(100%, 300px);
+  margin-top: clamp(7px, 1.7cqh, 12px);
+  color: rgba(245,243,237,0.72);
+  font: 600 9px/1.3 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.05em;
+}
+.image-generation-mode-choice select {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(245,243,237,0.28);
+  border-radius: 6px;
+  color: var(--milk);
+  background: rgba(21,22,20,0.68);
+  font: inherit;
+  letter-spacing: normal;
+}
+.image-generation-mode-choice select:focus-visible {
+  outline: 2px solid var(--milk);
+  outline-offset: 2px;
+}
+.image-generation-mode-choice small {
+  grid-column: 1 / -1;
+  min-height: 1em;
+  color: rgba(245,243,237,0.58);
+  font-size: 8px;
+  letter-spacing: 0.01em;
+}
+.image-generation-mode-result {
+  display: block;
+  color: rgba(245,243,237,0.6);
+  font: 600 8px/1.3 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.04em;
+}
 .visualpicks {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(6px, 1.7cqh, 10px);

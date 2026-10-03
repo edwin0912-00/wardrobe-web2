@@ -25,12 +25,12 @@ async function fixture(t, { clock = () => new Date() } = {}) {
   const runs = new Map();
   const deletedRuns = [];
 
-  async function addRun(runId, { status = 'COMPLETED' } = {}) {
+  async function addRun(runId, { status = 'COMPLETED', image_generation_mode = 'slow' } = {}) {
     const directory = path.join(outputRoot, runId);
     await mkdir(directory, { recursive: true });
     await writeFile(path.join(directory, 'avatar.png'), Buffer.from(`avatar:${runId}`));
     await writeFile(path.join(directory, 'avatar_outfit.png'), Buffer.from(`look:${runId}`));
-    runs.set(runId, { run_id: runId, status, outputs: { avatar: true, avatar_outfit: true } });
+    runs.set(runId, { run_id: runId, status, image_generation_mode, outputs: { avatar: true, avatar_outfit: true } });
   }
 
   const runService = {
@@ -63,6 +63,42 @@ test('existing profile databases gain source_look_id through an idempotent addit
   const databasePath = path.join(root, 'profiles.sqlite');
   const legacy = new DatabaseSync(databasePath);
   legacy.exec(`
+    CREATE TABLE looks (
+      look_id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      avatar_id TEXT NOT NULL,
+      source_run_id TEXT NOT NULL UNIQUE,
+      parent_look_id TEXT,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    ) STRICT;
+    CREATE TABLE scenes (
+      scene_id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      look_id TEXT NOT NULL,
+      preset_id TEXT NOT NULL,
+      preset_version TEXT NOT NULL,
+      status TEXT NOT NULL,
+      output_sha256 TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    ) STRICT;
+    CREATE TABLE editorial_shoots (
+      shoot_id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      look_id TEXT NOT NULL,
+      mode_id TEXT NOT NULL,
+      mode_version TEXT NOT NULL,
+      status TEXT NOT NULL,
+      approved_shot_count INTEGER NOT NULL DEFAULT 0,
+      hero_output_sha256 TEXT,
+      preview_slot TEXT,
+      preview_output_sha256 TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    ) STRICT;
     CREATE TABLE run_claims (
       run_id TEXT PRIMARY KEY,
       profile_id TEXT NOT NULL,
@@ -72,15 +108,39 @@ test('existing profile databases gain source_look_id through an idempotent addit
       claimed_at INTEGER NOT NULL
     ) STRICT
   `);
+  legacy.prepare(`
+    INSERT INTO looks(look_id, profile_id, avatar_id, source_run_id, created_at, expires_at)
+    VALUES ('legacy-look', 'legacy-profile', 'legacy-avatar', 'legacy-run', 1, 2)
+  `).run();
+  legacy.prepare(`
+    INSERT INTO scenes(scene_id, profile_id, look_id, preset_id, preset_version, status, created_at, updated_at, expires_at)
+    VALUES ('legacy-scene', 'legacy-profile', 'legacy-look', 'scene.fixture', '1.0.0', 'QUEUED', 1, 1, 2)
+  `).run();
+  legacy.prepare(`
+    INSERT INTO editorial_shoots(shoot_id, profile_id, look_id, mode_id, mode_version, status, created_at, updated_at, expires_at)
+    VALUES ('legacy-shoot', 'legacy-profile', 'legacy-look', 'editorial.fixture', '1.0.0', 'BIBLE_PENDING_APPROVAL', 1, 1, 2)
+  `).run();
   legacy.close();
 
   const service = new ProfileService({ databasePath });
   await service.initialize();
   service.close();
   const inspected = new DatabaseSync(databasePath);
-  const columns = inspected.prepare('PRAGMA table_info(run_claims)').all().map((column) => column.name);
+  const claimColumns = inspected.prepare('PRAGMA table_info(run_claims)').all().map((column) => column.name);
+  assert.equal(claimColumns.filter((name) => name === 'source_look_id').length, 1);
+  const legacyRows = [
+    ['looks', 'look_id', 'legacy-look'],
+    ['scenes', 'scene_id', 'legacy-scene'],
+    ['editorial_shoots', 'shoot_id', 'legacy-shoot'],
+  ];
+  for (const [table, idColumn, id] of legacyRows) {
+    const columns = inspected.prepare(`PRAGMA table_info(${table})`).all();
+    const modeColumn = columns.find((column) => column.name === 'image_generation_mode');
+    assert.ok(modeColumn, `${table} must gain the persisted image mode`);
+    assert.equal(modeColumn.dflt_value, "'slow'");
+    assert.equal(inspected.prepare(`SELECT image_generation_mode FROM ${table} WHERE ${idColumn} = ?`).get(id).image_generation_mode, 'slow');
+  }
   inspected.close();
-  assert.equal(columns.filter((name) => name === 'source_look_id').length, 1);
 
   const reopened = new ProfileService({ databasePath });
   await reopened.initialize();
@@ -192,6 +252,57 @@ test('claim is required, ownership is isolated, and claim/save replay is idempot
   assert.equal(avatarImage.headers['cache-control'], 'private, no-store');
   const isolatedImage = await app.inject({ method: 'GET', url: saved.json().avatar.image_url, headers: { cookie: cookieB } });
   assert.equal(isolatedImage.statusCode, 404);
+});
+
+test('profile reload retains the image mode of saved looks, scenes, and editorial shoots', async (t) => {
+  const { app, service, addRun } = await fixture(t);
+  await addRun('fast-profile-run', { image_generation_mode: 'fast' });
+  const profileResponse = await app.inject({ method: 'GET', url: '/api/profile' });
+  const cookie = profileCookie(profileResponse);
+  const profileId = profileResponse.json().profile_id;
+  const claimed = await app.inject({
+    method: 'POST',
+    url: '/api/profile/runs/fast-profile-run/claim',
+    headers: { cookie, 'content-type': 'application/json' },
+    payload: { source_avatar_id: null },
+  });
+  assert.equal(claimed.statusCode, 201, claimed.body);
+  const saved = await app.inject({
+    method: 'POST', url: '/api/profile/runs/fast-profile-run/save', headers: { cookie },
+  });
+  assert.equal(saved.statusCode, 201, saved.body);
+  const lookId = saved.json().look.look_id;
+  assert.equal(saved.json().look.image_generation_mode, 'fast');
+
+  const timestamp = '2026-10-03T12:00:00.000Z';
+  service.projectScene(profileId, lookId, {
+    scene_id: 'fast-profile-scene',
+    image_generation_mode: 'fast',
+    approved_look: { look_id: lookId },
+    preset: { preset_id: 'scene.fixture', version: '1.0.0' },
+    status: 'QUEUED',
+    created_at: timestamp,
+    updated_at: timestamp,
+  });
+  service.projectEditorialShoot(profileId, lookId, {
+    shoot_id: 'fast-profile-shoot',
+    image_generation_mode: 'fast',
+    status: 'BIBLE_PENDING_APPROVAL',
+    created_at: timestamp,
+    updated_at: timestamp,
+    bindings: {
+      approved_look: { look_id: lookId },
+      shoot_bible: { mode_id: 'editorial.fixture', mode_version: '1.0.0' },
+    },
+    shots: [],
+  });
+
+  const reloaded = await app.inject({ method: 'GET', url: '/api/profile', headers: { cookie } });
+  assert.equal(reloaded.statusCode, 200, reloaded.body);
+  const reloadedLook = reloaded.json().looks.find((look) => look.look_id === lookId);
+  assert.equal(reloadedLook.image_generation_mode, 'fast');
+  assert.equal(reloadedLook.scenes[0].image_generation_mode, 'fast');
+  assert.equal(reloadedLook.editorial_shoots[0].image_generation_mode, 'fast');
 });
 
 test('derived looks belong to an existing avatar and deletion preserves shared source data', async (t) => {

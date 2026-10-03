@@ -1,4 +1,5 @@
 import { createReadStream } from 'node:fs';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 import {
   EDITORIAL_AUTO_REPAIR_MAX_RETRIES,
   isEditorialSha256,
@@ -119,6 +120,7 @@ export function editorialShootView(shoot) {
   const heroBaseUrl = `/api/profile/editorial-shoots/${encodeURIComponent(shoot.shoot_id)}/shots/clean_identity_hero`;
   return {
     shoot_id: shoot.shoot_id,
+    image_generation_mode: shoot.image_generation_mode ?? 'slow',
     look_id: shoot.bindings.approved_look.look_id,
     status: shoot.status,
     phase: shoot.phase,
@@ -165,6 +167,7 @@ export function persistedEditorialShootView(projection) {
   return {
     shoot_id: projection.shoot_id,
     look_id: projection.look_id,
+    image_generation_mode: resolveImageGenerationMode(projection.image_generation_mode),
     status: projection.status,
     phase: 'RECOVERY_PENDING',
     message: 'Збережену фотосесію відновлюємо',
@@ -214,6 +217,7 @@ export async function registerEditorialShootRoutes(app, {
   runService,
   presetResolver,
   sceneService,
+  assertImageGenerationAvailable = async () => {},
 } = {}) {
   if (!editorialShootService
     || !profiles
@@ -224,6 +228,9 @@ export async function registerEditorialShootRoutes(app, {
     throw new Error(
       'registerEditorialShootRoutes requires editorialShootService, profiles, profileApi, runService, presetResolver and sceneService',
     );
+  }
+  if (typeof assertImageGenerationAvailable !== 'function') {
+    throw new Error('registerEditorialShootRoutes assertImageGenerationAvailable must be a function');
   }
 
   for (const projection of profiles.editorialShootProjectionRecords()) {
@@ -293,13 +300,15 @@ export async function registerEditorialShootRoutes(app, {
     app.post('/api/profile/looks/:lookId/editorial-shoots', async (request, reply) => {
       sameOriginMutation(request);
       const session = await profileApi.resolveRequestProfile(request, reply);
+      const imageGenerationMode = resolveImageGenerationMode(request.body?.image_generation_mode);
+      const { modeId, modeVersion } = requiredMode(request.body);
+      const key = idempotencyKey(request);
+      await assertImageGenerationAvailable(imageGenerationMode);
       const approvedLookReference = await profiles.approvedLookReference(
         session.profileId,
         request.params.lookId,
         runService,
       );
-      const { modeId, modeVersion } = requiredMode(request.body);
-      const key = idempotencyKey(request);
       const shootBible = await presetResolver.compileEditorialShootBible({
         modeId,
         version: modeVersion,
@@ -308,6 +317,7 @@ export async function registerEditorialShootRoutes(app, {
         idempotencyKey: key,
         approvedLookReference,
         shootBible,
+        imageGenerationMode,
       });
       // A Fashion Shoot is a direct five-frame product. The user has already
       // approved its selected style by pressing this create action, so the
@@ -470,6 +480,9 @@ export async function registerEditorialShootRoutes(app, {
       if (!owned) return reply.code(404).send({ error: 'Editorial shoot not found' });
       const key = idempotencyKey(request);
       const expectedBibleSha256 = requiredSha256(request.body, 'expected_bible_sha256');
+      await assertImageGenerationAvailable(
+        resolveImageGenerationMode(owned.image_generation_mode),
+      );
       const shoot = await editorialShootService.approveBible(request.params.shootId, {
         idempotencyKey: key,
         expectedBibleSha256,
@@ -490,6 +503,9 @@ export async function registerEditorialShootRoutes(app, {
       if (!owned) return reply.code(404).send({ error: 'Editorial shoot not found' });
       const key = idempotencyKey(request);
       const expectedOutputSha256 = requiredSha256(request.body, 'expected_output_sha256');
+      await assertImageGenerationAvailable(
+        resolveImageGenerationMode(owned.image_generation_mode),
+      );
       const shoot = await editorialShootService.approveHero(request.params.shootId, {
         idempotencyKey: key,
         expectedOutputSha256,
@@ -508,10 +524,14 @@ export async function registerEditorialShootRoutes(app, {
         shootId: request.params.shootId,
       });
       if (!owned) return reply.code(404).send({ error: 'Editorial shoot not found' });
+      const key = idempotencyKey(request);
+      await assertImageGenerationAvailable(
+        resolveImageGenerationMode(owned.image_generation_mode),
+      );
       const shoot = await editorialShootService.retryShot(
         request.params.shootId,
         request.params.slot,
-        { idempotencyKey: idempotencyKey(request) },
+        { idempotencyKey: key },
       );
       profiles.syncEditorialShootProjection(shoot);
       return reply.code(202).send(editorialShootView(shoot));

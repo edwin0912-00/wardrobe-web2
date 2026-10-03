@@ -48,6 +48,7 @@ test('generation job schema accepts only matching locked model and job_set_type 
 
   for (const lockedModel of lockedModels) {
     assert.equal(validate({ ...baseJob, ...lockedModel }), true, JSON.stringify(validate.errors));
+    assert.equal(validate({ ...baseJob, ...lockedModel, image_generation_mode: 'fast' }), true, JSON.stringify(validate.errors));
   }
   assert.equal(validate({
     ...baseJob,
@@ -59,6 +60,16 @@ test('generation job schema accepts only matching locked model and job_set_type 
     model: 'legacy-image-model',
     job_set_type: 'legacy_image_model',
   }), false);
+  assert.equal(validate({ ...baseJob, ...lockedModels[0], image_generation_mode: null }), false);
+});
+
+test('pipeline job schema accepts optional Slow/Fast intent and rejects invalid values', async () => {
+  const validate = validator(await readJson('schemas/pipeline-job.schema.json'));
+  const job = await readJson('jobs/001.json');
+  assert.equal(validate(job), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...job, image_generation_mode: 'slow' }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...job, image_generation_mode: 'fast' }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...job, image_generation_mode: null }), false);
 });
 
 test('generation-ready reference pack fixture remains valid with locked model selectors', async () => {

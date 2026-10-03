@@ -18,6 +18,7 @@ import {
   FAL_VIDEO_POLICY_REJECTION_MESSAGE,
   FAL_VIDEO_RESULT_REJECTION_CODE,
   FAL_VIDEO_RESULT_REJECTION_MESSAGE,
+  FAL_VIDEO_PROMPT_POLICIES,
   falVideoPrompt,
   resolveFalVideoModel,
 } from '../../src/providers/fal-video-provider.js';
@@ -180,6 +181,7 @@ function makeAcknowledgedFalProvider(requestId = 'accepted-request-1') {
           fallbackUsed: false,
           inputMedia: {
             schema_version: 'fal-video-input-media-v1',
+            prompt_policy: FAL_VIDEO_PROMPT_POLICIES.SCENE_DIRECTION,
             provider: 'fal',
             video_model: model.id,
             endpoint: model.endpoint,
@@ -934,6 +936,80 @@ test('startup restores one acknowledged request from its exact local receipt aft
     assert.equal(waitRequests[0].providerRequestId, 'accepted-request-1');
     assert.equal(createRequests.length, 1);
     assert.equal((await store.load(clipId)).jobId, 'accepted-request-1');
+  });
+});
+
+test('recovery preserves pre-upgrade motion-only wire prompts without another create', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const { provider, createRequests } = makeAcknowledgedFalProvider();
+    const store = new ClipStore(dir);
+    const save = store.save.bind(store);
+    let failCreatedSave = true;
+    store.save = async (clipId, metadata) => {
+      if (failCreatedSave && metadata.status === 'CREATED') {
+        failCreatedSave = false;
+        throw Object.assign(new Error('injected post-ack save failure'), { code: 'EIO' });
+      }
+      return save(clipId, metadata);
+    };
+    const service = new VideoService({ provider, clipStore: store });
+    await assert.rejects(() => createReceiptBoundClip(service, dir, sourcePath), { code: 'EIO' });
+    const clipId = createRequests[0].sourceBinding.clipId;
+    const clip = await store.load(clipId);
+    delete clip.immutableRequestBinding.prompt_policy;
+    await save(clipId, clip);
+    const receiptPath = path.join(store.clipDir(clipId), 'create-receipt.json');
+    const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+    delete receipt.request.immutable_request_binding.prompt_policy;
+    delete receipt.provider_input_media.prompt_policy;
+    receipt.request.provider_payload.prompt = falVideoPrompt(clip.prompt, {
+      policy: FAL_VIDEO_PROMPT_POLICIES.LEGACY_MOTION_ONLY,
+    });
+    receipt.provider_input_media.prompt_sha256 = sha256(Buffer.from(receipt.request.provider_payload.prompt));
+    const legacyBytes = `${JSON.stringify(receipt, null, 2)}\n`;
+    await writeFile(receiptPath, legacyBytes);
+
+    const recovered = await service.recoverSubmittedClip(clipId);
+    assert.equal(recovered.jobId, 'accepted-request-1');
+    assert.equal(recovered.status, 'CREATED');
+    assert.equal(createRequests.length, 1);
+    assert.equal(await readFile(receiptPath, 'utf8'), legacyBytes);
+    assert.equal((await store.load(clipId)).immutableRequestBinding.prompt_policy, undefined);
+  });
+});
+
+test('recovery rejects a new scene-direction acknowledgement relabelled as legacy', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const { provider, createRequests } = makeAcknowledgedFalProvider();
+    const store = new ClipStore(dir);
+    const save = store.save.bind(store);
+    let failCreatedSave = true;
+    store.save = async (clipId, metadata) => {
+      if (failCreatedSave && metadata.status === 'CREATED') {
+        failCreatedSave = false;
+        throw Object.assign(new Error('injected post-ack save failure'), { code: 'EIO' });
+      }
+      return save(clipId, metadata);
+    };
+    const service = new VideoService({ provider, clipStore: store });
+    await assert.rejects(() => createReceiptBoundClip(service, dir, sourcePath), { code: 'EIO' });
+    const clipId = createRequests[0].sourceBinding.clipId;
+    const clip = await store.load(clipId);
+    assert.equal(clip.immutableRequestBinding.prompt_policy, FAL_VIDEO_PROMPT_POLICIES.SCENE_DIRECTION);
+    const receiptPath = path.join(store.clipDir(clipId), 'create-receipt.json');
+    const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+    receipt.provider_input_media.prompt_policy = FAL_VIDEO_PROMPT_POLICIES.LEGACY_MOTION_ONLY;
+    receipt.request.provider_payload.prompt = falVideoPrompt(clip.prompt, {
+      policy: FAL_VIDEO_PROMPT_POLICIES.LEGACY_MOTION_ONLY,
+    });
+    receipt.provider_input_media.prompt_sha256 = sha256(Buffer.from(receipt.request.provider_payload.prompt));
+    await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+
+    await assert.rejects(() => service.recoverSubmittedClip(clipId), {
+      code: 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE',
+    });
+    assert.equal((await store.load(clipId)).status, 'SUBMITTING');
+    assert.equal(createRequests.length, 1);
   });
 });
 

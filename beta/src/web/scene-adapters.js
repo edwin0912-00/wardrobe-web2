@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import sharp from 'sharp';
+import { resolveImageGenerationMode } from '../providers/image-generation-mode.js';
 import {
   assertExternalPromptPrivacy,
   sanitizeExternalPrompt,
@@ -665,6 +666,7 @@ export class SceneGeneratorAdapter {
   }
 
   async generateScene(context) {
+    const imageGenerationMode = resolveImageGenerationMode(context.imageGenerationMode);
     const generationProfile = assertSceneRoute(context);
     const jobSetType = generationProfile.job_set_type;
     // Direct adapter callers can provide only a snapshotted route entry.
@@ -672,6 +674,7 @@ export class SceneGeneratorAdapter {
     // CLI cannot quietly fall back to its constructor's 2k/high defaults.
     context = {
       ...context,
+      imageGenerationMode,
       generation_profile: context.generation_profile ?? generationProfile,
       resolution: context.resolution ?? generationProfile.resolution,
       quality: context.quality ?? generationProfile.quality,
@@ -923,6 +926,7 @@ export class SceneGeneratorAdapter {
       structured_reference_evidence: evidence,
       dropped_attachment_roles: droppedAttachmentRoles,
       repair_plan_sha256: context.repair_plan_sha256 ?? null,
+      ...(imageGenerationMode === 'fast' ? { image_generation_mode: 'fast' } : {}),
     };
     const preSpendManifestBytes = canonicalJsonBytes(preSpendManifest);
     const preSpendManifestSha256 = sha256(preSpendManifestBytes);
@@ -958,6 +962,7 @@ export class SceneGeneratorAdapter {
       idempotencyKey: context.idempotency_key,
       jobId: context.scene_id,
       workDirectory: context.work_directory,
+      imageGenerationMode,
     });
     const raw = Buffer.isBuffer(providerResult?.image)
       ? providerResult.image

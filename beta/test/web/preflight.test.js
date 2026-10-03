@@ -43,6 +43,10 @@ test('Codex primary preflight requires the same authenticated worker capability'
   assert.equal(result.status, 'ready');
   assert.equal(result.primary, 'codex');
   assert.equal(result.fallback, 'fal-sunburst');
+  assert.deepEqual(result.image_generation_modes, {
+    slow: { available: true },
+    fast: { available: true },
+  });
   assert.equal(result.test_only, false);
 });
 
@@ -59,7 +63,32 @@ test('Codex primary preflight remains ready without optional FAL fallback', asyn
     assert.equal(result.primary, 'codex');
     assert.equal(result.fallback, undefined);
     assert.equal(result.generation, 'Codex Image Generation');
+    assert.deepEqual(result.image_generation_modes, {
+      slow: { available: true },
+      fast: { available: false },
+    });
   } finally {
     if (previous !== undefined) process.env.FAL_KEY = previous;
+  }
+});
+
+test('a Codex preflight failure leaves configured FAL image modes available', async () => {
+  const previous = process.env.FAL_KEY;
+  process.env.FAL_KEY = 'test-key';
+  try {
+    const result = await runLocalPreflight({
+      generationMode: 'codex-primary',
+      codexStatus: null,
+      commandRunner: async () => { throw new Error('Codex unavailable'); },
+    });
+    assert.equal(result.status, 'degraded');
+    assert.equal(result.reason_code, 'CODEX_PREFLIGHT_FAILED');
+    assert.deepEqual(result.image_generation_modes, {
+      slow: { available: true },
+      fast: { available: true },
+    });
+  } finally {
+    if (previous === undefined) delete process.env.FAL_KEY;
+    else process.env.FAL_KEY = previous;
   }
 });

@@ -46,6 +46,10 @@ const MODEL_LIMITS = Object.freeze({
 });
 
 export const FAL_VIDEO_PROVIDER = 'fal';
+export const FAL_VIDEO_PROMPT_POLICIES = Object.freeze({
+  LEGACY_MOTION_ONLY: 'motion-only-v1',
+  SCENE_DIRECTION: 'scene-direction-v2',
+});
 export const DEFAULT_FAL_VIDEO_MODEL = 'seedance-2.0';
 export const FAL_VIDEO_POLICY_REJECTION_CODE = 'FAL_VIDEO_POLICY_REJECTED';
 export const FAL_VIDEO_POLICY_REJECTION_MESSAGE = 'Провайдер відхилив цей запуск за правилами контенту. Повтор для нього недоступний.';
@@ -152,15 +156,23 @@ function imageMimeType(bytes) {
   });
 }
 
-export function falVideoPrompt(prompt) {
-  const direction = '@Video 1 is private reference-only directing material, never delivery media. '
-    + 'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, '
-    + 'pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, '
-    + 'props and environmental text.';
-  return prompt
-    .replace(direction, '@Video 1 is private motion-only reference material, never delivery media. '
+export function falVideoPrompt(prompt, { policy = FAL_VIDEO_PROMPT_POLICIES.SCENE_DIRECTION } = {}) {
+  if (!Object.values(FAL_VIDEO_PROMPT_POLICIES).includes(policy)) {
+    throw new FalVideoProviderError('Unknown Fashion Video prompt policy', {
+      code: 'VIDEO_PROMPT_POLICY_UNSUPPORTED',
+    });
+  }
+  let rendered = prompt;
+  if (policy === FAL_VIDEO_PROMPT_POLICIES.LEGACY_MOTION_ONLY) {
+    const direction = '@Video 1 is private reference-only directing material, never delivery media. '
+      + 'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, '
+      + 'pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, '
+      + 'props and environmental text.';
+    rendered = rendered.replace(direction, '@Video 1 is private motion-only reference material, never delivery media. '
       + 'Use it only for camera movement, framing, and shot/cut timing; follow the cut-sheet scene directions '
-      + 'and the approved image bindings for every other visual detail.')
+      + 'and the approved image bindings for every other visual detail.');
+  }
+  return rendered
     .replace(/@Image\s+(\d+)/g, '@Image$1')
     .replace(/@Video\s+(\d+)/g, '@Video$1');
 }
@@ -541,6 +553,7 @@ export class FalVideoProvider {
 
     const inputMedia = {
       schema_version: 'fal-video-input-media-v1',
+      prompt_policy: FAL_VIDEO_PROMPT_POLICIES.SCENE_DIRECTION,
       provider: FAL_VIDEO_PROVIDER,
       video_model: model.id,
       endpoint: model.endpoint,

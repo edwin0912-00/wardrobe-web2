@@ -2,7 +2,7 @@
 
 ## Images
 
-The default `codex-primary` mode uses the authenticated Codex worker first,
+Slow is the default image mode. It uses the authenticated Codex worker first,
 then FAL `openai/gpt-image-2.5/sunburst/edit` on a known safe primary failure.
 Requests with more than five required image references skip Codex and go
 directly to Sunburst, which supports sixteen. Never drop a required reference
@@ -19,6 +19,37 @@ submitted outcomes never trigger another paid submission. A persisted remote
 request must be resumed rather than created again. OpenRouter remains the
 semantic QA provider; it is not the default image fallback.
 
+## Slow/Fast image generation
+
+Both the cinematic site and Studio expose the same choice for new image jobs.
+The preference applies to the next request only; each accepted job persists its
+effective mode so a later toggle cannot change queued, running or recovered
+work. The selector is image-only and does not change Fashion Video or Live.
+
+- **Slow (default)** uses the existing Codex-first path, with FAL Sunburst as
+  its known-safe fallback. More than five required references bypass Codex and
+  go directly to Sunburst, preserving all references.
+- **Fast** sends directly to FAL Sunburst. It never tries Codex as a fallback.
+
+The initiating image APIs accept `image_generation_mode: "slow" | "fast"`:
+`POST /api/runs` (multipart), `/api/draft/run`, background-scene creation and
+editorial-shoot creation. Omission means `slow`. `null`, other types and
+unknown strings are rejected with HTTP 400 and
+`IMAGE_GENERATION_MODE_INVALID` before a job is created. The mode is stored on
+runs, scenes and shoots. Shoot child scenes inherit their parent's stored
+mode. Retries, approvals and recovery use the owned persisted mode rather than
+a newly selected browser preference. Replaying an idempotency key with a
+different mode conflicts; pre-mode records without the field retain their
+Slow identity and are treated as Slow without rewriting their state or
+manifests.
+
+`GET /api/health` reports per-mode capability as
+`image_generation_modes: { slow: { available: boolean }, fast: { available: boolean } }`.
+If a requested mode is unavailable, its generation trigger returns HTTP 503
+with `IMAGE_GENERATION_MODE_UNAVAILABLE`; Fast never silently falls back to
+Codex. A configured FAL route can keep Fast available when Codex preflight
+fails. A shared hard runtime fault can make both modes unavailable.
+
 ## Fashion Video
 
 Both sites select Seedance 2.0 (default) or Seedance 2.5. Creation accepts
@@ -32,10 +63,18 @@ Existing recorded OpenRouter jobs may still be resumed; new jobs are not
 silently redirected to that provider.
 
 The approved master is `@Image1`, subsequent images retain their declared
-appearance roles, and `@Video1` supplies camera, movement and timing. Source
+appearance roles, and `@Video1` supplies camera, movement, timing, environment,
+lighting, color and optical direction. The video transport normalizes reference
+labels without stripping those scene roles from new prompts. Source
 hashes are checked before upload. Server-side FAL storage URLs and prompt
 labels come from the same ordered list. Upload failure must stop before
 queue submission. Private reference URLs and request receipts stay off Git.
+
+New clips pin `scene-direction-v2` in their immutable request binding and
+provider input receipt. Older clips without a prompt-policy marker retain
+their exact `motion-only-v1` wire transformation during acknowledgement
+recovery. A policy mismatch quarantines recovery; it never authorizes another
+paid create.
 
 | Contract | Seedance 2.0 | Seedance 2.5 |
 |---|---|---|
@@ -104,6 +143,26 @@ parent. Generic 400/422 result validation is also terminal; transport failures
 with a known request ID can resume polling that same job.
 
 [FAL error semantics](https://fal.ai/docs/documentation/model-apis/errors)
-mark content-policy violations as non-retryable. No verified FAL workflow for
-authorizing these particular person references has been established. Further
-provider/access selection remains an owner decision.
+mark content-policy violations as non-retryable. The original test set remains
+rejected historical evidence. The authorized derivative experiment below is a
+separate request with its own inputs and receipt.
+
+## Authorized derivative test — 2026-10-03
+
+A separate owner-authorized Seedance 2.5 request
+`01a102e0-a588-7452-9b9e-1ab7b6b02afd` used the approved-look and garment-detail
+images plus only reference-01's reviewed face-masked RGB derivative and its
+synchronized relative-depth video. FAL returned HTTP 200 and a 720×1280,
+24 FPS MP4 lasting 14.042 seconds. All original source hashes remained
+unchanged. This confirms that exact request only; it does not turn earlier
+rejected jobs into retryable ones, grant blanket person-reference access or
+certify every future input.
+
+The observed account-balance reduction was $11.105316. The estimate charged
+13.24 seconds of RGB input, 13.24 seconds of depth input and 14 requested
+output seconds. Sampled review found a brief gray oval mask remnant and a
+background person. This was a transport success with visible defects, not a
+polished deliverable. Earlier original-reference rejections remain terminal;
+no new provider request was run for this documentation update. Reproduction
+steps and private-state boundaries are documented in
+[`VIDEO-REFERENCE-PIPELINE.md`](VIDEO-REFERENCE-PIPELINE.md).

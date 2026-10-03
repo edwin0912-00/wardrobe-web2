@@ -10,6 +10,7 @@
   ],
   "properties": {
     "job_id": { "type": "string" },
+    "image_generation_mode": { "enum": ["slow", "fast"] },
     "node_id": { "type": "string" },
     "attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
     "idempotency_key": { "type": "string", "minLength": 16 },

@@ -14,8 +14,10 @@ beta/secrets/*.json
 beta/secrets/*.pem
 beta/secrets/*.key
 
-node_modules/
-beta/node_modules/
+node_modules
+.omx/
+__pycache__/
+*.py[cod]
 artifacts/self-check/
 artifacts/test-system/
 test-results/

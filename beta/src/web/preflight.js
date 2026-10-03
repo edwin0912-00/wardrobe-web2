@@ -15,16 +15,29 @@ async function run(binary, args, commandRunner) {
 
 export async function runLocalPreflight({ commandRunner = execFileAsync, generationMode = 'codex-primary', codexStatus = null } = {}) {
   if (generationMode === 'codex-imagegen-test' || generationMode === 'codex-primary') {
-    const [, loginStatus] = await Promise.all([
-      run('codex', ['--version'], commandRunner),
-      run('codex', ['login', 'status'], commandRunner),
-    ]);
-    if (!/logged in using chatgpt/i.test(loginStatus)
-      || codexStatus?.account?.type !== 'chatgpt'
-      || codexStatus?.capabilities?.imageGeneration !== true) {
-      throw new Error('Codex imagegen preflight requires ChatGPT login and imageGeneration capability');
-    }
     const falConfigured = String(process.env.FAL_KEY ?? '').trim().length > 0;
+    try {
+      const [, loginStatus] = await Promise.all([
+        run('codex', ['--version'], commandRunner),
+        run('codex', ['login', 'status'], commandRunner),
+      ]);
+      if (!/logged in using chatgpt/i.test(loginStatus)
+        || codexStatus?.account?.type !== 'chatgpt'
+        || codexStatus?.capabilities?.imageGeneration !== true) {
+        throw new Error('Codex imagegen preflight requires ChatGPT login and imageGeneration capability');
+      }
+    } catch (error) {
+      if (generationMode !== 'codex-primary' || !falConfigured) throw error;
+      return {
+        status: 'degraded',
+        generation: 'Codex Image Generation unavailable; FAL Sunburst is configured',
+        reason_code: 'CODEX_PREFLIGHT_FAILED',
+        image_generation_modes: {
+          slow: { available: true },
+          fast: { available: true },
+        },
+      };
+    }
     // Keep the public health surface generic: it must never disclose the local
     // worker implementation or the authenticated account type.
     return generationMode === 'codex-primary'
@@ -35,9 +48,18 @@ export async function runLocalPreflight({ commandRunner = execFileAsync, generat
             : 'Codex Image Generation',
           primary: 'codex',
           ...(falConfigured ? { fallback: 'fal-sunburst' } : {}),
+          image_generation_modes: {
+            slow: { available: true },
+            fast: { available: falConfigured },
+          },
           test_only: false,
         }
-      : { status: 'ready', generation: 'Codex Image Generation — test only', test_only: true };
+      : {
+        status: 'ready',
+        generation: 'Codex Image Generation — test only',
+        image_generation_modes: { slow: { available: true }, fast: { available: false } },
+        test_only: true,
+      };
   }
   if (generationMode === 'openrouter') {
     // OpenRouter is a plain HTTPS API: there is no local CLI to version-check
@@ -53,7 +75,11 @@ export async function runLocalPreflight({ commandRunner = execFileAsync, generat
     if (!String(process.env.OPENROUTER_API_KEY ?? '').trim()) {
       throw new Error('OpenRouter generation preflight requires OPENROUTER_API_KEY');
     }
-    return { status: 'ready', generation: 'OpenRouter Image Generation' };
+    return {
+      status: 'ready',
+      generation: 'OpenRouter Image Generation',
+      image_generation_modes: { slow: { available: true }, fast: { available: false } },
+    };
   }
   throw new Error(`Unsupported generation mode: ${generationMode}`);
 }

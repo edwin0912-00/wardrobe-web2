@@ -6,6 +6,8 @@ export const SCENE_TERMINAL_STATUSES = Object.freeze([
   'CANCELLED',
 ]);
 
+import { resolveImageGenerationMode } from './image-generation-mode-ui.js?v=20261003-1';
+
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 
@@ -55,6 +57,9 @@ export function normalizeSceneResume(value) {
   const referencePackSha256 = value.reference_pack_sha256 == null
     ? null
     : String(value.reference_pack_sha256);
+  let imageGenerationMode;
+  try { imageGenerationMode = resolveImageGenerationMode(value.image_generation_mode); }
+  catch { return null; }
   if (sceneId !== null && !SAFE_ID.test(sceneId)) return null;
   if (!SAFE_ID.test(lookId) || !SAFE_ID.test(presetId) || !SAFE_ID.test(presetVersion)) return null;
   if (idempotencyKey.length < 8 || idempotencyKey.length > 256) return null;
@@ -67,6 +72,7 @@ export function normalizeSceneResume(value) {
     preset_version: presetVersion,
     idempotency_key: idempotencyKey,
     reference_pack_sha256: referencePackSha256,
+    image_generation_mode: imageGenerationMode,
     updated_at: nonEmptyString(value.updated_at) ? value.updated_at : new Date().toISOString(),
   };
 }
@@ -119,6 +125,7 @@ export function sceneResumeFromSnapshot(scene, previous = {}) {
     look_id: scene?.approved_look?.look_id ?? previous.look_id,
     preset_id: scene?.preset?.preset_id ?? previous.preset_id,
     preset_version: scene?.preset?.version ?? previous.preset_version,
+    image_generation_mode: scene?.image_generation_mode ?? previous.image_generation_mode ?? 'slow',
   };
   return normalizeSceneResume(value);
 }

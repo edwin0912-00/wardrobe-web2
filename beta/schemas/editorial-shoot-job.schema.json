@@ -31,6 +31,7 @@
     "state_integrity_sha256": { "$ref": "#/$defs/sha256" },
     "request_fingerprint": { "$ref": "#/$defs/sha256" },
     "idempotency_hash": { "$ref": "#/$defs/sha256" },
+    "image_generation_mode": { "enum": ["slow", "fast"] },
     "status": {
       "enum": [
         "BIBLE_PENDING_APPROVAL",
