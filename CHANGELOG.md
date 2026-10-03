@@ -6,6 +6,14 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
 
 ## 2026-10-03 — per-job image speed and video evidence
 
+Follow-up verification on October 4 repaired the historical ADD_ITEMS packager
+for the unified repository: its three materialized quality references are now
+checked against the original locked Git tree instead of being requested from
+the current Git archive. Rebuilt overlays record and verify those byte
+bindings. Cache rewriting accepts the current source tags and still requires
+each exact target once. The full-product release route remains the current
+production installer and deploy path.
+
 - Added the private operator questionnaire (`./setup run`) around the existing
   full-product installation contract. Media downloads use isolated temporary
   files and bounded timeouts while retaining byte-count, SHA and archive-path

@@ -52,6 +52,13 @@ function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
+function gitBlobSha1(bytes) {
+  return createHash('sha1')
+    .update(`blob ${bytes.byteLength}\0`)
+    .update(bytes)
+    .digest('hex');
+}
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -104,6 +111,41 @@ assert(/^[a-f0-9]{64}$/.test(manifest.content_digest_sha256), 'Release content d
 assert(/^additems-[a-f0-9]{8}-[a-f0-9]{12}$/.test(manifest.cache_token), 'Release cache token is invalid');
 assert(Array.isArray(manifest.deploy_files) && manifest.deploy_files.length > 0, 'Release has no deploy files');
 assert(Array.isArray(manifest.validation_files), 'Release validation_files is invalid');
+const qualityBindings = manifest.quality_reference_bindings;
+assert(
+  qualityBindings && typeof qualityBindings === 'object',
+  'Release has no locked quality reference bindings',
+);
+assert(
+  qualityBindings.source_lock_path === 'release/RELEASE.lock.json'
+    && /^[a-f0-9]{64}$/.test(qualityBindings.source_lock_sha256 ?? '')
+    && /^[a-f0-9]{40}$/.test(qualityBindings.source_commit ?? '')
+    && /^[a-f0-9]{40}$/.test(qualityBindings.source_tree ?? ''),
+  'Quality reference source lock binding is invalid',
+);
+const expectedQualityReferencePaths = [
+  'inputs/zeely-test/quality-references/output1.png',
+  'inputs/zeely-test/quality-references/output2.png',
+  'inputs/zeely-test/quality-references/output3.png',
+];
+assert(Array.isArray(qualityBindings.files), 'Quality reference file bindings are invalid');
+assert(
+  JSON.stringify(qualityBindings.files.map((entry) => entry.release_path))
+    === JSON.stringify(expectedQualityReferencePaths),
+  'Quality reference bindings must contain the three approved references in order',
+);
+for (let index = 0; index < qualityBindings.files.length; index += 1) {
+  const binding = qualityBindings.files[index];
+  assert(
+    binding.source_path === expectedQualityReferencePaths[index]
+      && binding.release_path === expectedQualityReferencePaths[index]
+      && /^[a-f0-9]{40}$/.test(binding.git_blob_sha1 ?? '')
+      && Number.isSafeInteger(binding.size_bytes)
+      && binding.size_bytes > 0
+      && /^[a-f0-9]{64}$/.test(binding.sha256 ?? ''),
+    `Quality reference binding is invalid: ${expectedQualityReferencePaths[index]}`,
+  );
+}
 
 const records = [...manifest.deploy_files, ...manifest.validation_files]
   .map((record) => {
@@ -132,6 +174,18 @@ assert(
   manifest.validation_files.every((record) => record.deploy === false && !isDeployPath(record.path)),
   'validation_files contains a deploy path or deploy flag',
 );
+const qualityReferenceRecords = manifest.deploy_files.filter((record) => (
+  record.path.startsWith('inputs/zeely-test/quality-references/')
+));
+assert(
+  JSON.stringify(qualityReferenceRecords.map((record) => record.path))
+    === JSON.stringify(expectedQualityReferencePaths)
+    && qualityReferenceRecords.every((record) => record.mode === '0600'),
+  'Deploy inventory must retain exactly the three private quality references at mode 0600',
+);
+const qualityBindingByPath = new Map(
+  qualityBindings.files.map((binding) => [binding.release_path, binding]),
+);
 
 const actualPaths = (await walk(releaseDirectory))
   .filter((relativePath) => relativePath !== manifestRelativePath)
@@ -154,6 +208,13 @@ for (const record of records) {
   assert((fileInfo.mode & 0o6000) === 0, `setuid/setgid release file: ${record.path}`);
   assert(bytes.byteLength === record.size_bytes, `Size mismatch for ${record.path}`);
   assert(sha256(bytes) === record.sha256, `SHA-256 mismatch for ${record.path}`);
+  const qualityBinding = qualityBindingByPath.get(record.path);
+  if (qualityBinding) {
+    assert(bytes.byteLength === qualityBinding.size_bytes, `Locked quality reference size mismatch: ${record.path}`);
+    assert(sha256(bytes) === qualityBinding.sha256, `Locked quality reference SHA-256 mismatch: ${record.path}`);
+    assert(gitBlobSha1(bytes) === qualityBinding.git_blob_sha1, `Locked quality reference Git blob mismatch: ${record.path}`);
+    assert(record.sha256 === qualityBinding.sha256, `Quality reference inventory binding mismatch: ${record.path}`);
+  }
   if (bytes.includes(0)) continue;
   const text = bytes.toString('utf8');
   for (const candidate of privateTextPatterns) {

@@ -50,7 +50,6 @@ const cleanHeadFiles = [
   'schemas',
   'src',
   'web',
-  'inputs/zeely-test/quality-references',
   'tools/run-web-daemon.sh',
   'tools/run-monitor-daemon.sh',
 ];
@@ -118,6 +117,13 @@ const forbiddenReleaseRoots = new Set([
   'spec',
 ]);
 
+const qualityReferenceDirectoryRelative = 'inputs/zeely-test/quality-references';
+const qualityReferencePaths = [
+  `${qualityReferenceDirectoryRelative}/output1.png`,
+  `${qualityReferenceDirectoryRelative}/output2.png`,
+  `${qualityReferenceDirectoryRelative}/output3.png`,
+];
+
 async function assertOutputAbsent() {
   try {
     await lstat(outputDirectory);
@@ -173,6 +179,13 @@ async function writeWorkspaceSnapshot(snapshot) {
 
 function sha256(buffer) {
   return createHash('sha256').update(buffer).digest('hex');
+}
+
+function gitBlobSha1(buffer) {
+  return createHash('sha1')
+    .update(`blob ${buffer.byteLength}\0`)
+    .update(buffer)
+    .digest('hex');
 }
 
 function isDeployFile(relativePath) {
@@ -245,6 +258,94 @@ try {
     'HEAD',
   ]);
   const baseCommit = baseCommitStdout.trim();
+  const { stdout: repositoryRootStdout } = await execute('git', [
+    '-C',
+    projectRoot,
+    'rev-parse',
+    '--show-toplevel',
+  ]);
+  const repositoryRoot = repositoryRootStdout.trim();
+  if (path.relative(repositoryRoot, projectRoot) !== 'beta') {
+    throw new Error('Add-items release builder must run from the beta workspace');
+  }
+  const releaseLockBytes = await readFile(path.join(repositoryRoot, 'release/RELEASE.lock.json'));
+  const releaseLock = JSON.parse(releaseLockBytes.toString('utf8'));
+  const lockedBetaSource = releaseLock.sources?.beta_engine;
+  if (
+    lockedBetaSource?.location !== 'beta'
+    || !/^[a-f0-9]{40}$/.test(lockedBetaSource?.commit ?? '')
+    || !/^[a-f0-9]{40}$/.test(lockedBetaSource?.source_tree ?? '')
+  ) {
+    throw new Error('Release lock does not contain a valid beta source commit and tree');
+  }
+  const { stdout: sourceTreeStdout } = await execute('git', [
+    '-C',
+    repositoryRoot,
+    'rev-parse',
+    `${lockedBetaSource.commit}^{tree}`,
+  ]);
+  if (sourceTreeStdout.trim() !== lockedBetaSource.source_tree) {
+    throw new Error('Release lock beta source tree does not match its commit');
+  }
+  await execute('git', [
+    '-C',
+    repositoryRoot,
+    'merge-base',
+    '--is-ancestor',
+    lockedBetaSource.commit,
+    baseCommit,
+  ]);
+
+  const sourceReferenceDirectory = path.join(projectRoot, qualityReferenceDirectoryRelative);
+  const sourceDirectoryInfo = await lstat(sourceReferenceDirectory);
+  if (!sourceDirectoryInfo.isDirectory() || sourceDirectoryInfo.isSymbolicLink()) {
+    throw new Error('Quality reference source must be a real directory');
+  }
+  const sourceReferenceNames = (await readdir(sourceReferenceDirectory)).sort();
+  const expectedReferenceNames = qualityReferencePaths
+    .map((referencePath) => path.posix.basename(referencePath))
+    .sort();
+  if (JSON.stringify(sourceReferenceNames) !== JSON.stringify(expectedReferenceNames)) {
+    throw new Error('Quality reference source must contain exactly output1.png through output3.png');
+  }
+  const qualityReferenceBindings = [];
+  const verifiedQualityReferenceBytes = new Map();
+  for (const sourcePath of qualityReferencePaths) {
+    const sourceFile = path.join(projectRoot, ...sourcePath.split('/'));
+    const sourceInfo = await lstat(sourceFile);
+    if (!sourceInfo.isFile() || sourceInfo.isSymbolicLink()) {
+      throw new Error(`Quality reference must be a real file: ${sourcePath}`);
+    }
+    const materializedBytes = await readFile(sourceFile);
+    const { stdout: canonicalBytes } = await execute('git', [
+      '-C',
+      repositoryRoot,
+      'show',
+      `${lockedBetaSource.commit}:${sourcePath}`,
+    ], { encoding: 'buffer', maxBuffer: 4 * 1024 * 1024 });
+    if (!Buffer.isBuffer(canonicalBytes) || !canonicalBytes.equals(materializedBytes)) {
+      throw new Error(`Materialized quality reference differs from locked Git source: ${sourcePath}`);
+    }
+    verifiedQualityReferenceBytes.set(sourcePath, canonicalBytes);
+    const { stdout: blobStdout } = await execute('git', [
+      '-C',
+      repositoryRoot,
+      'rev-parse',
+      `${lockedBetaSource.commit}:${sourcePath}`,
+    ]);
+    const gitBlob = blobStdout.trim();
+    if (!/^[a-f0-9]{40}$/.test(gitBlob) || gitBlobSha1(canonicalBytes) !== gitBlob) {
+      throw new Error(`Locked quality reference blob is invalid: ${sourcePath}`);
+    }
+    qualityReferenceBindings.push({
+      source_path: sourcePath,
+      release_path: sourcePath,
+      git_blob_sha1: gitBlob,
+      size_bytes: canonicalBytes.byteLength,
+      sha256: sha256(canonicalBytes),
+    });
+  }
+
   const authoritySnapshots = await snapshotCacheAuthorityFiles(cacheAuthorityFiles);
   const authoritySnapshotByPath = new Map(
     authoritySnapshots.map((snapshot) => [snapshot.path, snapshot]),
@@ -269,15 +370,15 @@ try {
   }
 
   let appSource = authoritySnapshotByPath.get('web/public/app.js').bytes.toString('utf8');
-  for (const [moduleName, expectedVersion] of [
-    ['server-draft.js', '20260723-13'],
-    ['draft-file-contract.js', '20260723-1'],
-    ['profile-client.js', '20260724-5'],
-    ['add-items-flow.js', '20260723-4'],
+  for (const [moduleName, cacheReferencePattern] of [
+    ['server-draft.js', /\.\/server-draft\.js\?v=[0-9A-Za-z._-]+/g],
+    ['draft-file-contract.js', /\.\/draft-file-contract\.js\?v=[0-9A-Za-z._-]+/g],
+    ['profile-client.js', /\.\/profile-client\.js\?v=[0-9A-Za-z._-]+/g],
+    ['add-items-flow.js', /\.\/add-items-flow\.js\?v=[0-9A-Za-z._-]+/g],
   ]) {
-    appSource = replaceRequired(
+    appSource = replaceUniquePattern(
       appSource,
-      `./${moduleName}?v=${expectedVersion}`,
+      cacheReferencePattern,
       `./${moduleName}?v=${releaseCacheToken}`,
       `${moduleName} release cache token`,
     );
@@ -292,9 +393,9 @@ try {
 
   let serverDraftSource = authoritySnapshotByPath
     .get('web/public/server-draft.js').bytes.toString('utf8');
-  serverDraftSource = replaceRequired(
+  serverDraftSource = replaceUniquePattern(
     serverDraftSource,
-    './draft-file-contract.js?v=20260723-1',
+    /\.\/draft-file-contract\.js\?v=[0-9A-Za-z._-]+/g,
     `./draft-file-contract.js?v=${releaseCacheToken}`,
     'server draft SHA contract cache token',
   );
@@ -344,21 +445,21 @@ ${profileClient.slice(avatarFileStart)}`;
   indexSource = `${indexSource.slice(0, sceneViewStart)}`
     + '        <div id="scene-view" class="scene-view hidden" hidden aria-hidden="true"></div>\n'
     + `${indexSource.slice(failureViewStart)}`;
-  indexSource = replaceRequired(
+  indexSource = replaceUniquePattern(
     indexSource,
-    '  <link rel="stylesheet" href="/upload.css?v=20260723-2">',
+    /^  <link rel="stylesheet" href="\/upload\.css\?v=[0-9A-Za-z._-]+">$/gm,
     `  <link rel="stylesheet" href="/upload.css?v=${releaseCacheToken}">`,
     'upload stylesheet cache token',
   );
-  indexSource = replaceRequired(
+  indexSource = replaceUniquePattern(
     indexSource,
-    '  <link rel="stylesheet" href="/experience.css?v=20260723-6">',
+    /^  <link rel="stylesheet" href="\/experience\.css\?v=[0-9A-Za-z._-]+">$/gm,
     `  <link rel="stylesheet" href="/experience.css?v=${releaseCacheToken}">`,
     'experience stylesheet cache token',
   );
-  indexSource = replaceRequired(
+  indexSource = replaceUniquePattern(
     indexSource,
-    '  <link rel="stylesheet" href="/result.css?v=20260723-3">',
+    /^  <link rel="stylesheet" href="\/result\.css\?v=[0-9A-Za-z._-]+">$/gm,
     `  <link rel="stylesheet" href="/result.css?v=${releaseCacheToken}">`,
     'result stylesheet cache token',
   );
@@ -408,11 +509,13 @@ ${profileClient.slice(avatarFileStart)}`;
     'zeely-test',
     'quality-references',
   );
-  for (const entry of await readdir(qualityReferenceDirectory, { withFileTypes: true })) {
-    if (!entry.isFile()) {
-      throw new Error(`Unsupported quality reference entry: ${entry.name}`);
-    }
-    await chmod(path.join(qualityReferenceDirectory, entry.name), 0o600);
+  await mkdir(qualityReferenceDirectory, { recursive: true, mode: 0o700 });
+  for (const binding of qualityReferenceBindings) {
+    const bytes = verifiedQualityReferenceBytes.get(binding.source_path);
+    if (!bytes) throw new Error(`Locked quality reference bytes are missing: ${binding.source_path}`);
+    const destination = path.join(releaseDirectory, ...binding.release_path.split('/'));
+    await writeFile(destination, bytes, { mode: 0o600 });
+    await chmod(destination, 0o600);
   }
 
   const fileInventory = await releaseFiles(releaseDirectory);
@@ -434,6 +537,13 @@ ${profileClient.slice(avatarFileStart)}`;
         size_bytes: snapshot.bytes.byteLength,
         sha256: sha256(snapshot.bytes),
       })),
+    },
+    quality_reference_bindings: {
+      source_lock_path: 'release/RELEASE.lock.json',
+      source_lock_sha256: sha256(releaseLockBytes),
+      source_commit: lockedBetaSource.commit,
+      source_tree: lockedBetaSource.source_tree,
+      files: qualityReferenceBindings,
     },
     package_type: 'RUNTIME_OVERLAY',
     runtime_state_strategy: 'PRESERVE_EXISTING_RUNTIME_AND_NODE_MODULES',

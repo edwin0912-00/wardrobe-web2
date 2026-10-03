@@ -17,6 +17,7 @@ import { promisify } from 'node:util';
 
 const execute = promisify(execFile);
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
+const repositoryRoot = path.dirname(projectRoot);
 
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
@@ -58,6 +59,35 @@ test('add-items release is runtime-only, private-path-free, and tamper-evident',
     manifest.cache_authority.hash_format,
     'sha256-length-prefixed-path-mode-bytes-v1',
   );
+  const releaseLockBytes = await readFile(
+    path.join(repositoryRoot, 'release', 'RELEASE.lock.json'),
+  );
+  const releaseLock = JSON.parse(releaseLockBytes.toString('utf8'));
+  const referenceBindings = manifest.quality_reference_bindings;
+  assert.equal(referenceBindings.source_lock_path, 'release/RELEASE.lock.json');
+  assert.equal(referenceBindings.source_lock_sha256, sha256(releaseLockBytes));
+  assert.equal(referenceBindings.source_commit, releaseLock.sources.beta_engine.commit);
+  assert.equal(referenceBindings.source_tree, releaseLock.sources.beta_engine.source_tree);
+  assert.equal(referenceBindings.files.length, 3);
+  for (const binding of referenceBindings.files) {
+    assert.equal(binding.source_path, binding.release_path);
+    const sourceBytes = await readFile(path.join(projectRoot, binding.source_path));
+    const releasedBytes = await readFile(path.join(releaseDirectory, binding.release_path));
+    const sourceBlob = await execute('git', [
+      '-C',
+      repositoryRoot,
+      'rev-parse',
+      `${releaseLock.sources.beta_engine.commit}:${binding.source_path}`,
+    ]);
+    assert.deepEqual(releasedBytes, sourceBytes);
+    assert.equal(binding.git_blob_sha1, sourceBlob.stdout.trim());
+    assert.equal(binding.git_blob_sha1, createHash('sha1')
+      .update(`blob ${sourceBytes.byteLength}\0`)
+      .update(sourceBytes)
+      .digest('hex'));
+    assert.equal(binding.size_bytes, sourceBytes.byteLength);
+    assert.equal(binding.sha256, sha256(sourceBytes));
+  }
   const authorityPaths = manifest.cache_authority.files.map((entry) => entry.path);
   assert.deepEqual(authorityPaths, [...authorityPaths].sort());
   assert.equal(new Set(authorityPaths).size, authorityPaths.length);
@@ -129,9 +159,19 @@ test('add-items release is runtime-only, private-path-free, and tamper-evident',
     'utf8',
   );
   assert.ok(releasedApp.includes(`./draft-file-contract.js?v=${manifest.cache_token}`));
+  for (const moduleName of [
+    'server-draft.js',
+    'draft-file-contract.js',
+    'profile-client.js',
+    'add-items-flow.js',
+  ]) {
+    assert.ok(releasedApp.includes(`./${moduleName}?v=${manifest.cache_token}`));
+  }
   assert.ok(releasedServerDraft.includes(`./draft-file-contract.js?v=${manifest.cache_token}`));
   assert.ok(releasedIndex.includes(`/result.css?v=${manifest.cache_token}`));
-  assert.doesNotMatch(releasedServerDraft, /draft-file-contract\.js\?v=20260723-/);
+  assert.ok(releasedIndex.includes(`/upload.css?v=${manifest.cache_token}`));
+  assert.ok(releasedIndex.includes(`/experience.css?v=${manifest.cache_token}`));
+  assert.doesNotMatch(releasedServerDraft, /draft-file-contract\.js\?v=\d{8}-/);
   assert.match(releasedDraftContract, /export async function sha256Blob/);
   assert.match(releasedDraftContract, /left\.sha256 === right\.sha256/);
   assert.match(releasedDraftService, /const DRAFT_MODE_ADD_ITEMS = 'ADD_ITEMS'/);
@@ -141,6 +181,24 @@ test('add-items release is runtime-only, private-path-free, and tamper-evident',
     releaseByPath.get('web/public/draft-file-contract.js').sha256,
     sha256(releasedDraftContract),
   );
+
+  const qualityReferencePath = path.join(
+    releaseDirectory,
+    'inputs',
+    'zeely-test',
+    'quality-references',
+    'output1.png',
+  );
+  const originalQualityReference = await readFile(qualityReferencePath);
+  await writeFile(qualityReferencePath, Buffer.concat([originalQualityReference, Buffer.from([0])]));
+  await assert.rejects(
+    execute(process.execPath, [
+      path.join(projectRoot, 'tools', 'verify-add-items-release.mjs'),
+      releaseDirectory,
+    ]),
+    /Size mismatch|SHA-256 mismatch|Git blob mismatch/,
+  );
+  await writeFile(qualityReferencePath, originalQualityReference);
 
   const appPath = path.join(releaseDirectory, 'web', 'public', 'app.js');
   const originalApp = await readFile(appPath, 'utf8');
