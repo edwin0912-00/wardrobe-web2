@@ -1,5 +1,26 @@
 # Wardrobe SSD consolidation — 2026-10-02
 
+## Additional preservation — 2026-10-03
+
+The same private archive collection now also contains `releases-20261003`
+(four old beta release trees) and `ops-followup-20261003` (three complete
+source/install/job roots and all regular contents of a fourth historical
+clone). Both batches passed full source-to-archive verification and real
+restoration. The fourth clone's external dependency symlink was not followed;
+its literal target and parent/link metadata are retained in a separate sealed
+pointer receipt. That generated receipt's own subsecond mtime rounded on
+restore; its bytes and the original metadata encoded inside it match. All
+44 original data roots in the second batch restored exactly.
+
+Deletion and measured free-space receipts remain in the private operational
+audit. A preservation record alone does not authorize deleting an active
+checkout, dependency, runtime, provider account or agent history. Keep one
+working release and its explicit rollback; verify current handles and links
+before retiring other copies. The dated measurements below describe the
+October 2 operation only.
+
+## Completed October 2 operation
+
 Completed owner-approved conservation before cleanup. Private paths, manifests, inputs, API keys and generation receipts are not published here.
 
 - One private legacy archive collection contains self-contained `builds`, `historical` and `git-history` batches. SHA-256-addressed blobs are accompanied by original-path, permission, timestamp, ownership, xattr and link manifests and a restoration tool.

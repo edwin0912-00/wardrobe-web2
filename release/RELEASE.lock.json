@@ -6,7 +6,7 @@
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
-      "commit": "5e959c93ced77f624e8d4f1fd6002d3439385054",
+      "commit": "be33b6d9c8571b55578b0bd47a514f3426cf91e3",
       "location": "."
     },
     "beta_engine": {
