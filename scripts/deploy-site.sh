@@ -2,30 +2,40 @@
 set -eu
 
 REPO_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-RUNTIME_DIR='/Users/jarvis1/Library/Application Support/WardrobeRuntime'
-PUBLIC_ORIGIN='https://site.madeforthisjob.com'
 cd "$REPO_DIR"
 
-branch=$(git branch --show-current)
-case "$branch" in
-  alpha) EXPECTED_UPSTREAM='origin/alpha' ;;
-  *) echo "refusing deploy: branch is $branch, expected alpha" >&2; exit 1 ;;
-esac
+RUNTIME_ROOT=${WARDROBE_RUNTIME_ROOT:-"${HOME:?HOME is required}/Library/Application Support/WardrobeRuntime"}
+VERSIONS_ROOT=${WARDROBE_SITE_VERSIONS_ROOT:-"${RUNTIME_ROOT}.releases"}
+SITE_ORIGIN=${WARDROBE_SITE_ORIGIN:-'https://site.madeforthisjob.com'}
+LOCAL_ORIGIN=${WARDROBE_SITE_LOCAL_ORIGIN:-'http://127.0.0.1:4180'}
+SITE_LABEL=${WARDROBE_SITE_LABEL:-'com.madeforthisjob.web2'}
+PYTHON_BIN=${WARDROBE_PYTHON:-'python3'}
+GIT_BIN=${WARDROBE_GIT:-'git'}
 
-upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
-if [ "$upstream" != "$EXPECTED_UPSTREAM" ]; then
-  echo "refusing deploy: upstream is ${upstream:-none}, expected $EXPECTED_UPSTREAM" >&2
+: "${WARDROBE_BETA_RUNNER:?set WARDROBE_BETA_RUNNER to the configured beta runner path}"
+SITE_PLIST=${WARDROBE_SITE_PLIST:-"${HOME:?HOME is required}/Library/LaunchAgents/${SITE_LABEL}.plist"}
+BETA_PLIST=${WARDROBE_BETA_PLIST:-"${HOME:?HOME is required}/Library/LaunchAgents/com.madeforthisjob.beta.plist"}
+
+branch=$("$GIT_BIN" branch --show-current)
+if [ "$branch" != 'alpha' ]; then
+  echo "refusing deploy: branch is $branch, expected alpha" >&2
   exit 1
 fi
 
-if [ -n "$(git status --porcelain)" ]; then
+upstream=$("$GIT_BIN" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
+if [ "$upstream" != 'origin/alpha' ]; then
+  echo "refusing deploy: upstream is ${upstream:-none}, expected origin/alpha" >&2
+  exit 1
+fi
+
+if [ -n "$("$GIT_BIN" status --porcelain)" ]; then
   echo "refusing deploy: worktree is dirty" >&2
   exit 1
 fi
 
-git fetch origin "${EXPECTED_UPSTREAM#origin/}"
-local_head=$(git rev-parse HEAD)
-remote_head=$(git rev-parse "$EXPECTED_UPSTREAM")
+"$GIT_BIN" fetch origin alpha
+local_head=$("$GIT_BIN" rev-parse HEAD)
+remote_head=$("$GIT_BIN" rev-parse origin/alpha)
 if [ "$local_head" != "$remote_head" ]; then
   echo "refusing deploy: local HEAD is not origin/alpha" >&2
   exit 1
@@ -34,45 +44,14 @@ fi
 ./verify quick
 ./scripts/site-preflight.sh
 
-if [ ! -d "$RUNTIME_DIR/b" ]; then
-  echo "refusing deploy: runtime directory is missing" >&2
-  exit 1
-fi
-
-/usr/bin/rsync -a \
-  --exclude '.git' \
-  --exclude '.gitignore' \
-  --exclude '.DS_Store' \
-  "$REPO_DIR/" "$RUNTIME_DIR/"
-
-# `serve.py` is also the same-origin /api gateway. Static bytes update on the
-# next request, but Python code does not; restart only this launchd job so the
-# exact committed gateway and Range implementation become active together.
-/bin/launchctl kickstart -k "gui/$(id -u)/com.madeforthisjob.web2"
-
-/usr/bin/cmp "$REPO_DIR/b/index.html" "$RUNTIME_DIR/b/index.html"
-/usr/bin/cmp "$REPO_DIR/engine.js" "$RUNTIME_DIR/engine.js"
-/usr/bin/cmp "$REPO_DIR/ui.js" "$RUNTIME_DIR/ui.js"
-/usr/bin/cmp "$REPO_DIR/style.css" "$RUNTIME_DIR/style.css"
-/usr/bin/cmp "$REPO_DIR/screen-surfaces.js" "$RUNTIME_DIR/screen-surfaces.js"
-/usr/bin/cmp "$REPO_DIR/serve.py" "$RUNTIME_DIR/serve.py"
-/usr/bin/cmp "$REPO_DIR/adapters/zeely-client.mjs" "$RUNTIME_DIR/adapters/zeely-client.mjs"
-/usr/bin/cmp "$REPO_DIR/adapters/cinematic-ui-bridge.mjs" "$RUNTIME_DIR/adapters/cinematic-ui-bridge.mjs"
-
-attempt=0
-until /usr/bin/curl -fsS -o /dev/null "http://127.0.0.1:4180/b/"; do
-  attempt=$((attempt + 1))
-  if [ "$attempt" -ge 20 ]; then
-    echo "deploy failed: site service did not become ready" >&2
-    exit 1
-  fi
-  /bin/sleep 1
-done
-/usr/bin/curl -fsS -r 0-1023 -o /dev/null "http://127.0.0.1:4180/b/assets/seg1.mp4"
-/usr/bin/curl -fsS -o /dev/null "$PUBLIC_ORIGIN/b/"
-/usr/bin/curl -fsS -r 0-1023 -o /dev/null "$PUBLIC_ORIGIN/b/assets/seg1.mp4"
-/usr/bin/curl -fsS -o /dev/null "http://127.0.0.1:4180/api/health"
-/usr/bin/curl -fsS -o /dev/null "$PUBLIC_ORIGIN/api/health"
-
-echo "deployed $local_head"
-echo "public: $PUBLIC_ORIGIN/"
+"$PYTHON_BIN" scripts/site-release.py deploy \
+  --repo-root "$REPO_DIR" \
+  --runtime-root "$RUNTIME_ROOT" \
+  --versions-root "$VERSIONS_ROOT" \
+  --source-commit "$local_head" \
+  --site-plist "$SITE_PLIST" \
+  --site-label "$SITE_LABEL" \
+  --beta-plist "$BETA_PLIST" \
+  --beta-runner "$WARDROBE_BETA_RUNNER" \
+  --local-origin "$LOCAL_ORIGIN" \
+  --public-origin "$SITE_ORIGIN"

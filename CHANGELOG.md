@@ -10,6 +10,11 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
   full-product installation contract. Media downloads use isolated temporary
   files and bounded timeouts while retaining byte-count, SHA and archive-path
   checks. The installer does not provision infrastructure or provider accounts.
+- Main deployments now package only the serving files and locked cinematic
+  media, preserve a versioned rollback, and verify public static bytes and
+  Range responses. Both deployment gates require the expected engine source
+  SHA and cache identity. A ready response from an older process cannot mark
+  the new release active.
 - Both websites expose image-only Slow/Fast selection. Slow remains the default
   Codex-first path with its known-safe FAL Sunburst fallback and direct FAL
   routing above five required references; Fast routes directly to FAL Sunburst.
@@ -27,7 +32,12 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
   balance reduction was $11.105316. Sampled review found a brief gray oval mask
   remnant and a background person. The request is a specific transport result,
   not a polished delivery or blanket access grant. The earlier rejected jobs
-  remain terminal, and no later paid provider request is claimed.
+  remain terminal. No further video request was made.
+- Real image routing checks on the image-speed candidate passed with five
+  ordered references: Slow selected Codex without fallback (48.774 seconds),
+  and Fast selected the FAL Sunburst edit endpoint without calling Codex
+  (46.541 seconds). These are transport receipts, not a general speed benchmark
+  or a complete semantic-QA verdict. Images and detailed receipts stay private.
 - See [provider routing](docs/PROVIDER-ROUTING.md) and the
   [video-reference pipeline](docs/VIDEO-REFERENCE-PIPELINE.md) for the
   contracts and private-state boundary. This entry does not assert source

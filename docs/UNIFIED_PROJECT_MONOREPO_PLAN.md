@@ -94,7 +94,13 @@ avatar/look/Fashion Shoot/Fashion Video journey or model-quality QA.
 4. Build/verify the engine artifact with the tools in
    `beta/docs/canonical/10_DEPLOYMENT_RUNBOOK.md`. Activate through
    `beta/tools/deploy-beta-release.mjs`; its active-work guard must pass.
-   Deploy main through `scripts/deploy-site.sh`. Preserve private runtime.
+   Deploy main through `scripts/deploy-site.sh`, setting
+   `WARDROBE_BETA_RUNNER` to that same configured engine runner. Main builds a
+   scoped static artifact under the stable runtime's sibling `.releases`
+   directory, requires the engine to serve the same source SHA, and preserves
+   the previous tree/pointer. Failed health, static-byte or Range checks restore
+   the previous runtime. The activation JSON records the exact artifact and
+   rollback location. Preserve private runtime and the previous engine artifact.
 5. Recheck public health, source/artifact correspondence, main↔API bridge,
    reference catalogs, media Range and browser behavior. Publish a redacted
    result and exact source SHA to the shared board.
