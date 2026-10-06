@@ -76,10 +76,15 @@ try {
       PORT: String(port),
       ZEELY_RUNTIME_ROOT: path.join(temporaryRoot, 'runtime'),
       ZEELY_COOKIE_SECURE: 'false',
-      // The local README contract must not require a public deployment origin
-      // or a fallback credential merely to serve the application.
-      ZEELY_PUBLIC_HTTPS_ORIGIN: '',
+      CODEX_HOME: path.join(temporaryRoot, 'codex-home'),
+      ZEELY_GENERATION_PROVIDER: 'codex-primary',
+      ZEELY_VLM_PROVIDER: 'codex',
+      FAL_KEY: '',
       OPENROUTER_API_KEY: '',
+      // The local README contract must not require a public deployment origin
+      // or provider credentials merely to serve the application. This probe
+      // uses a missing Codex home so it cannot borrow operator auth.
+      ZEELY_PUBLIC_HTTPS_ORIGIN: '',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
