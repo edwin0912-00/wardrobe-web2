@@ -24,7 +24,6 @@ test('alpha README and evaluator expose one reproducible behavioral acceptance p
   assert.match(readme, /--filter=blob:none --single-branch --branch alpha/);
   assert.doesNotMatch(readme, /--depth\s+\d+/, 'provenance verification needs the locked source commits');
   assert.match(readme, /\.\/verify --run/);
-  assert.match(readme, /print their actual\s+loopback addresses/);
   assert.match(readme, /TEST-SYSTEM\.md/);
   assert.match(readme, /REVIEWER-ACCEPTANCE\.md/);
   assert.match(reviewerAcceptance, /Bridge module повернув 404/);

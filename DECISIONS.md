@@ -45,3 +45,10 @@
   The owner explicitly confirmed `middltech.com`. Connect its `wardrobe`
   hostname to the isolated Jarvis instance, preserving the existing domain
   records and the current production Wardrobe services.
+
+- **2026-10-06 — Keep CI useful and its emails quiet.** The owner requested
+  stopping GitHub Actions failure emails while keeping a working product and
+  a readable README. Change the account's Actions email preference separately
+  from the repository checks. Do not bind installation acceptance to an exact
+  prose sentence; retain executable startup, gateway, browser and provenance
+  checks. A saved notification setting needs its own confirmation receipt.
