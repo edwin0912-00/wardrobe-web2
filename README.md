@@ -30,6 +30,8 @@ cd wardrobe-web2
 
 The setup command asks for private host and provider settings, then runs the whole-product verifier and starts both local experiences. It keeps configuration outside Git. The local UI can start without provider credentials, but any unconfigured generation feature remains unavailable. Stop the foreground processes with `Ctrl+C`.
 
+Both servers print their actual loopback addresses (local URLs). Open those addresses in your browser; the default ports may already be occupied.
+
 To check an existing private configuration without calling providers:
 
 ```sh
