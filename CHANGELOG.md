@@ -4,6 +4,21 @@ This is the operational history of the unified `alpha` product. Git commits
 carry the exact diffs and Lore decision trailers; this file explains their
 effect on the complete product. Private inputs, receipts and keys stay off Git.
 
+## 2026-10-06 — installation and readable documentation
+
+- Fixed a fresh-install failure when the operator selected OpenRouter QA. The
+  credential-free README startup check now isolates its provider settings and
+  Codex profile instead of retaining a provider selection after clearing its key.
+  Real configured startup retains the operator's selected providers.
+- Added a subprocess regression with inherited provider settings. A new GitHub
+  clone with configured credentials passed all eight local acceptance stages
+  and started both interfaces. Paid generation was not repeated in that check.
+- Reworked the product, engine, compatibility, and documentation-index READMEs
+  around the product and installation. Agent instructions and historical
+  operating details remain in their focused documents. The cover is the
+  existing cinematic opening poster; no generated proof or performance claim
+  was added.
+
 ## 2026-10-03 — per-job image speed and video evidence
 
 Follow-up verification on October 4 repaired the historical ADD_ITEMS packager

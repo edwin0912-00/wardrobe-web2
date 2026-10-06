@@ -25,3 +25,18 @@
   wraps `./verify --run`, asks for private configuration and runs on the chosen
   host. It does not create accounts, provision a cloud machine or configure DNS
   automatically. Keep its secrets outside the checkout with restrictive modes.
+
+- **2026-10-06 — Verify a disposable installation from GitHub.** The owner
+  requested a fresh isolated install using README and the operator helper,
+  based on Jarvis, with a new `wardrobe` subdomain and comparison against the
+  active product. Keep source, runtime, ports and public routing separate from
+  production; record all temporary resources so they can be removed afterward.
+  Confirm the exact owned domain before DNS writes. Do not share writable live
+  databases or use an existing deployed artifact as proof of a fresh install.
+
+- **2026-10-06 — Keep README entrypoints human-readable.** The owner asked to
+  remove agent handoffs and operational diaries from public README pages. Lead
+  with the product, real visual material, installation and practical limits;
+  retain agent rules and historical evidence in their existing focused docs.
+  Use the supplied beautify-github-readme reference for reading order without
+  adding invented claims, decorative motion or third-party promotional links.

@@ -1,18 +1,26 @@
-# WARDROBE Web 2.0 — документація по системах
+# Wardrobe documentation
 
-Кожен файл — один аспект, максимально детально, з реальними числами й перевіреними
-фактами (не з пам'яті). Складено 2026-07-29.
+Start with the [project README](../README.md) for the product overview and quickstart. These guides cover installation, providers, acceptance, and the cinematic site implementation.
 
-- [01 — Скрол, інерція, синусоїда](01-SCROLL-INERTIA-SINE.md)
-- [02 — Завантаження](02-LOADING.md)
-- [03 — Звук](03-AUDIO.md)
-- [04 — Станції, гейти, інтро (+ головна відкрита дірка)](04-STATIONS-GATES-INTRO.md)
-- [05 — Геометрія кадру, екран ноутбука, зерно](05-FRAME-GEOMETRY-SCREEN-OVERLAY.md)
-- [06 — UI-канон](06-UI-CANON.md)
-- [07 — Сцена 1 і відкриті рішення власника](07-SCENE1-AND-OPEN-DECISIONS.md)
-- [13 — Identity lock вибраного D-master](13-CANONICAL-D-IDENTITY-LOCK.md)
-- [14 — Калібровка площин TV і ноутбука](14-SCREEN-PLANE-CALIBRATION.md)
+## Install and operate
 
-Загальний контекст, посилання, стан репо — `../HANDOFF.md` у корені.
-Канон структури — `../LEVEL-DESIGN.md`. Мова інтерфейсу — `../DESIGN-NOTES.md`.
-Функції по поверхнях — `../FUNCTION-MAP.md`.
+- [Operator setup](OPERATOR-SETUP.md) — private configuration and a fresh host.
+- [Unified project guide](UNIFIED_PROJECT_MONOREPO_PLAN.md) — source, runtime, deployment, and recovery boundaries.
+- [Test system](TEST-SYSTEM.md) — local and deployed verification modes.
+- [Reviewer acceptance](REVIEWER-ACCEPTANCE.md) — clean-checkout review path.
+- [Public preview tunnel](PUBLIC_PREVIEW_TUNNEL_UA.md) — temporary HTTPS preview.
+
+## Providers and media
+
+- [Provider routing](PROVIDER-ROUTING.md) — image, video, QA, and Live routes.
+- [Video reference pipeline](VIDEO-REFERENCE-PIPELINE.md) — private references, preparation, and replay constraints.
+
+## Cinematic site
+
+- [Main-site adapter](08-MAIN-SITE-ADAPTER.md) — bridge between the site and engine.
+- [Beta-to-cinematic integration map](09-BETA-TO-CINEMATIC-INTEGRATION-MAP.md) — interface and service relationships.
+- [Client UI window map](10-CLIENT-UI-WINDOW-MAP.md) — main-site UI structure.
+- [UI canon](06-UI-CANON.md) — visual and interaction rules.
+- [Scroll and motion](01-SCROLL-INERTIA-SINE.md), [loading](02-LOADING.md), [audio](03-AUDIO.md), and [frame geometry](05-FRAME-GEOMETRY-SCREEN-OVERLAY.md).
+
+Historical and specialist notes remain available in this folder and [`beta/docs/`](../beta/docs/) where they are still relevant to a specific task.
