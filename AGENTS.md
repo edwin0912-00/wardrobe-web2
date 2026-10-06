@@ -10,6 +10,10 @@ from `main`, `beta` or `canonical-site-main`.
 
 Read `docs/PROVIDER-ROUTING.md` before changing generation. Preserve every
 mandatory reference, selected Seedance model and persisted remote request.
+For the requested Nano Banana 2.1 migration, also read `docs/NANO-BANANA-2.1.md`.
+The verified Google ID is `gemini-nano-banana-2.1`; integration is pending.
+Never relabel old Nano Banana 2/Pro identifiers or Sunburst receipts as 2.1,
+and never invent a FAL endpoint from a marketing name.
 Do not resubmit unknown outcomes or silently replace a model. FAL credentials
 remain server-only; OpenRouter retains semantic QA.
 The 2026-10-01 Seedance requests were rejected for their supplied inputs and

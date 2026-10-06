@@ -46,6 +46,8 @@ Image generation offers **Slow** and **Fast** per job. Slow uses the authorized 
 
 Fashion Video also needs the private original reference package that matches the checked-in manifest. A public clone does not include those originals. The complete per-route contract, setup fields, and privacy boundaries are in [provider routing](docs/PROVIDER-ROUTING.md) and the [video reference guide](docs/VIDEO-REFERENCE-PIPELINE.md).
 
+[Nano Banana 2.1](docs/NANO-BANANA-2.1.md) is documented for the next image-model integration; it is not yet an available Wardrobe route.
+
 ## Repository map
 
 - `b/`, root UI files — cinematic main experience.

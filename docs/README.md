@@ -13,6 +13,7 @@ Start with the [project README](../README.md) for the product overview and quick
 ## Providers and media
 
 - [Provider routing](PROVIDER-ROUTING.md) — image, video, QA, and Live routes.
+- [Nano Banana 2.1](NANO-BANANA-2.1.md) — verified Google API contract and integration status.
 - [Video reference pipeline](VIDEO-REFERENCE-PIPELINE.md) — private references, preparation, and replay constraints.
 
 ## Cinematic site

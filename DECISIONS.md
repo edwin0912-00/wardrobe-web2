@@ -52,3 +52,9 @@
   from the repository checks. Do not bind installation acceptance to an exact
   prose sentence; retain executable startup, gateway, browser and provenance
   checks. A saved notification setting needs its own confirmation receipt.
+
+- **2026-10-06 — Integrate the exact Nano Banana 2.1 model.** The owner requested
+  a coordinated update across the project, routes, prompts, documentation and
+  GitHub. Google documents `gemini-nano-banana-2.1`. Its placement in Slow/Fast
+  and direct-provider access remain unresolved; record those decisions before
+  activation. Preserve historical model identities and all required references.

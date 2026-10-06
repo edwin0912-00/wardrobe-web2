@@ -1,5 +1,10 @@
 # Wardrobe provider routing
 
+Nano Banana 2.1 is an owner-requested image-model update. Its verified Google
+ID is `gemini-nano-banana-2.1`; provider access and runtime integration are
+pending. See the [model contract and migration requirements](NANO-BANANA-2.1.md).
+The active routes below have not yet changed.
+
 ## Images
 
 Slow is the default image mode. It uses the authenticated Codex worker first,

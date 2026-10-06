@@ -6,6 +6,10 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
 
 ## 2026-10-06 — installation and readable documentation
 
+- Documented Google's Nano Banana 2.1 API identity, limits, pricing sources
+  and migration requirements. Runtime integration and provider access remain
+  pending; current image routes and historical receipts are unchanged.
+
 - Fixed a fresh-install failure when the operator selected OpenRouter QA. The
   credential-free README startup check now isolates its provider settings and
   Codex profile instead of retaining a provider selection after clearing its key.
