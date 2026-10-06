@@ -40,3 +40,8 @@
   retain agent rules and historical evidence in their existing focused docs.
   Use the supplied beautify-github-readme reference for reading order without
   adding invented claims, decorative motion or third-party promotional links.
+
+- **2026-10-06 — Use wardrobe.middltech.com for the temporary deployment.**
+  The owner explicitly confirmed `middltech.com`. Connect its `wardrobe`
+  hostname to the isolated Jarvis instance, preserving the existing domain
+  records and the current production Wardrobe services.

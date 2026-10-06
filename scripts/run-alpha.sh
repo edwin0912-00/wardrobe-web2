@@ -138,7 +138,7 @@ PY
   cd "$REPO_DIR/beta"
   PORT=$ENGINE_PORT \
   ZEELY_RUNTIME_ROOT=$RUNTIME_ROOT/engine \
-  ZEELY_COOKIE_SECURE=false \
+  ZEELY_COOKIE_SECURE="${ZEELY_COOKIE_SECURE:-false}" \
   exec node src/web/start.js
 ) >"$LOG_ROOT/engine.log" 2>&1 &
 ENGINE_PID=$!
@@ -163,6 +163,7 @@ fi
 
 python3 - "$SITE_PORT" "$ENGINE_PORT" <<'PY'
 import json
+import os
 import sys
 import urllib.request
 
@@ -204,6 +205,20 @@ status, headers, body = fetch(
 if status != 206 or len(body) != 1024 or not headers.get("Content-Range"):
     raise SystemExit("alpha runtime failed: MP4 HTTP Range contract is broken")
 print("PASS MP4 Range: HTTP 206")
+
+_, profile_headers, _ = fetch(f"http://127.0.0.1:{site_port}/api/profile")
+secure_cookie = (os.environ.get("ZEELY_COOKIE_SECURE") or "false") != "false"
+cookie_name = "__Host-zeely_profile" if secure_cookie else "zeely_profile_dev"
+profile_cookies = [
+    value for value in profile_headers.get_all("Set-Cookie", [])
+    if value.startswith(f"{cookie_name}=")
+]
+if len(profile_cookies) != 1:
+    raise SystemExit("alpha runtime failed: expected profile cookie was not set")
+attributes = {value.strip().lower() for value in profile_cookies[0].split(";")[1:]}
+if ("secure" in attributes) != secure_cookie:
+    raise SystemExit("alpha runtime failed: profile cookie Secure setting was not honored")
+print(f"PASS profile cookie Secure={str(secure_cookie).lower()}")
 
 _, _, health_bytes = fetch(f"http://127.0.0.1:{site_port}/api/health")
 health = json.loads(health_bytes)

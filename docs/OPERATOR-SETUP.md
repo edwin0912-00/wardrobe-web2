@@ -92,3 +92,14 @@ Complete DNS, TLS, firewall, persistent-service, and external authentication
 work through the operator’s existing infrastructure process. The setup command
 does not claim that those steps completed. Keep the terminal open to supervise
 the local processes; stop them with `Ctrl+C`.
+
+When serving the product through HTTPS ingress, enable secure session cookies:
+
+```sh
+ZEELY_COOKIE_SECURE=true ./setup run
+```
+
+The local launcher defaults to `false` for loopback HTTP. It honors an explicit
+setting and checks the profile cookie returned through the main-site gateway.
+This check creates one anonymous profile, makes no provider call, and does not
+print the cookie value. Enabling the flag does not configure HTTPS itself.
