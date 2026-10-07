@@ -1,5 +1,11 @@
 # Wardrobe decisions
 
+- **2026-10-07 — Temporarily switch semantic QA to Codex.** The owner approved
+  the existing Codex evaluator after OpenRouter credit exhaustion blocked
+  generation delivery. Preserve every quality gate and image route; disable
+  startup replay of failed QA scenes for the controlled cutover and verify a
+  bounded request before recovering historical work. No account top-up.
+
 - **2026-10-03 — Preserve the successful video pipeline.** The owner accepted
   the Seedance 2.5 experiment using reviewed masked RGB and synchronized depth.
   Keep the reproducible tools, source hashes and full environment/light/color/

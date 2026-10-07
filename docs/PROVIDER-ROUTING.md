@@ -21,8 +21,25 @@ it as a native 4096-pixel output.
 
 Malformed input, missing or changed references, journal conflicts and unknown
 submitted outcomes never trigger another paid submission. A persisted remote
-request must be resumed rather than created again. OpenRouter remains the
-semantic QA provider; it is not the default image fallback.
+request must be resumed rather than created again.
+
+## Semantic QA
+
+The owner approved a temporary switch from OpenRouter to the existing Codex
+evaluator on 2026-10-07 after OpenRouter credits were exhausted. Set
+`ZEELY_VLM_PROVIDER=codex`; the scene evaluator uses `gpt-5.6-terra` with the
+same references and quality gates. This setting does not select the image
+generator. OpenRouter remains supported when explicitly selected and funded.
+
+For a controlled provider cutover, set
+`ZEELY_SCENE_AUTO_RECOVER_QA_FAILURES=false` before restarting. This preserves
+failed scenes without automatically replaying the historical QA backlog;
+new jobs and explicit retries retain normal QA behavior. The default is
+`true` for compatibility; only literal `true` and `false` are accepted.
+A negative semantic verdict may trigger image repair, so retrying an existing
+candidate is not a guarantee of zero generation cost. Verify a bounded job
+before enabling backlog recovery. Deployment and provider readiness need
+live receipts; this configuration contract alone does not prove activation.
 
 ## Slow/Fast image generation
 

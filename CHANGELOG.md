@@ -4,6 +4,14 @@ This is the operational history of the unified `alpha` product. Git commits
 carry the exact diffs and Lore decision trailers; this file explains their
 effect on the complete product. Private inputs, receipts and keys stay off Git.
 
+## 2026-10-07 — controlled QA provider recovery
+
+- Added a validated startup switch for automatic recovery of failed scene QA.
+  Operators can change QA providers without replaying the historical backlog;
+  new jobs and explicit retries keep all existing quality checks.
+- Recorded the owner-approved temporary Codex QA configuration after the
+  OpenRouter credit outage. Slow/Fast image routing remains unchanged.
+
 ## 2026-10-06 — installation and readable documentation
 
 - Documented Google's Nano Banana 2.1 API identity, limits, pricing sources

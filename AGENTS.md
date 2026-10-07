@@ -15,7 +15,9 @@ The verified Google ID is `gemini-nano-banana-2.1`; integration is pending.
 Never relabel old Nano Banana 2/Pro identifiers or Sunburst receipts as 2.1,
 and never invent a FAL endpoint from a marketing name.
 Do not resubmit unknown outcomes or silently replace a model. FAL credentials
-remain server-only; OpenRouter retains semantic QA.
+remain server-only. The owner approved temporary Codex semantic QA on
+2026-10-07; follow the controlled cutover in `docs/PROVIDER-ROUTING.md` and
+verify the active configuration before claiming it is deployed.
 The 2026-10-01 Seedance requests were rejected for their supplied inputs and
 remain terminal historical jobs. A separately authorized 2026-10-03 test
 with reviewed face-masked RGB, synchronized relative depth, approved-look

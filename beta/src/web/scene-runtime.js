@@ -71,6 +71,10 @@ export function createSceneRuntimeDependencies({
   if (!sceneEvaluator && vlmProvider !== CODEX_VLM_PROVIDER && vlmProvider !== OPENROUTER_VLM_PROVIDER) {
     throw new Error(`Unknown ZEELY_VLM_PROVIDER: ${vlmProvider}`);
   }
+  const qaFailureRecovery = process.env.ZEELY_SCENE_AUTO_RECOVER_QA_FAILURES ?? 'true';
+  if (!['true', 'false'].includes(qaFailureRecovery)) {
+    throw new Error('ZEELY_SCENE_AUTO_RECOVER_QA_FAILURES must be true or false');
+  }
 
   const resolvedProjectRoot = path.resolve(projectRoot);
   // All scene routes use the one 3:4 delivery contract. No scene route crops
@@ -109,7 +113,7 @@ export function createSceneRuntimeDependencies({
         ? new OpenRouterSceneEvaluator({})
         : new SceneEvaluatorAdapter({ model: 'gpt-5.6-terra' })
     ),
-    autoRecoverQaInfrastructureFailures: true,
+    autoRecoverQaInfrastructureFailures: qaFailureRecovery === 'true',
     fashionShootQaMode,
     presetResolver: new FilesystemScenePresetResolver({
       rootDirectory: path.join(resolvedProjectRoot, 'assets', 'scene-presets'),

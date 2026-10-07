@@ -128,3 +128,26 @@ test('scene runtime refuses incomplete evaluator and monitor wiring', () => {
     /monitor\.append/,
   );
 });
+
+// An operator must be able to switch QA providers without replaying old failures.
+test('scene runtime validates the startup QA recovery switch', () => {
+  const key = 'ZEELY_SCENE_AUTO_RECOVER_QA_FAILURES';
+  const previous = process.env[key];
+  const args = { projectRoot: '/test/project', qaEvaluator: async () => ({}),
+    generationProvider: { generate: async () => ({}) } };
+  try {
+    delete process.env[key];
+    assert.equal(createSceneRuntimeDependencies(args).autoRecoverQaInfrastructureFailures, true);
+    process.env[key] = 'false';
+    assert.equal(createSceneRuntimeDependencies(args).autoRecoverQaInfrastructureFailures, false);
+    process.env[key] = 'true';
+    assert.equal(createSceneRuntimeDependencies(args).autoRecoverQaInfrastructureFailures, true);
+    for (const invalid of ['', '0', 'FALSE', 'no']) {
+      process.env[key] = invalid;
+      assert.throws(() => createSceneRuntimeDependencies(args), /ZEELY_SCENE_AUTO_RECOVER_QA_FAILURES/);
+    }
+  } finally {
+    if (previous === undefined) delete process.env[key];
+    else process.env[key] = previous;
+  }
+});
