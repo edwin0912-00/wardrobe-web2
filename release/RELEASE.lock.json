@@ -6,14 +6,14 @@
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
-      "commit": "4db85493200d4bcf606e6d12cb06f1f2d557cb87",
+      "commit": "9f03b024278ccf96c448d1e128e3e3f3577fc3d6",
       "location": "."
     },
     "beta_engine": {
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
       "commit": "826ba677838ba11bdc5520e75225c8f593f67102",
       "source_tree": "679d1a3dc4abdd95b3a92afc22eaaadc2da85a5c",
-      "tree": "922f388e7d93b6e2063c062417bf137bb1b9bbdb",
+      "tree": "a2f6b8afb669231ca19993d41a50c9d85457d785",
       "location": "beta"
     }
   },
