@@ -8,6 +8,7 @@ import getpass
 import json
 import os
 import platform
+import shutil
 import socket
 import stat
 import subprocess
@@ -526,6 +527,12 @@ def _prepare_runtime_directory(path: Path) -> None:
 
 def run_product(repo_root: Path, config: dict, *, base_environment: dict | None = None, runner=subprocess.run) -> int:
     environment = build_run_environment(config, base_environment)
+    if config["video_reference_root"]:
+        missing = [name for name in ("ffmpeg", "ffprobe")
+                   if shutil.which(name, path=environment.get("PATH", os.defpath)) is None]
+        if missing:
+            raise SetupError("Fashion Video requires " + ", ".join(missing)
+                             + " on the run PATH. Install FFmpeg and run ./setup run again.")
     _prepare_runtime_directory(Path(config["runtime_root"]))
     old_umask = os.umask(0o077)
     try:
@@ -552,6 +559,9 @@ def report_check(config: dict) -> None:
         print(f"Video-reference root: {state} (manifest hashes were not checked)")
     else:
         print("Video-reference root: not configured")
+    print("Video tools on PATH: " + ", ".join(
+        f"{name} {'found' if shutil.which(name) else 'missing'}"
+        for name in ("ffmpeg", "ffprobe")) + " (path lookup only; not executed)")
     print(f"Ports: site {_format_port(config['site_port'])}, engine {_format_port(config['engine_port'])}")
     if not auth_present or not config["fal_key"] or not config["openrouter_api_key"]:
         print("Local UI can run with missing credentials; unavailable provider features remain unverified.")

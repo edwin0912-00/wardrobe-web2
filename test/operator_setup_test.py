@@ -251,6 +251,22 @@ class OperatorSetupTests(unittest.TestCase):
         self.assertIn("operator setup interrupted", errors.getvalue())
         self.assertNotIn("Traceback", errors.getvalue())
 
+    def test_configured_video_requires_tools_on_the_actual_run_path(self):
+        config = dict(self.config, video_reference_root=str(self.temp_root / "video-refs"))
+        called = []
+        runner = lambda *args, **kwargs: called.append(args) or SimpleNamespace(returncode=0)
+        with patch("shutil.which", return_value=None):
+            with self.assertRaisesRegex(operator_setup.SetupError, "ffmpeg.*ffprobe"):
+                operator_setup.run_product(self.repo, config,
+                    base_environment={"PATH": "/isolated/tools"}, runner=runner)
+        self.assertEqual(called, [])
+        with patch("shutil.which", side_effect=lambda name, path: "/tools/" + name) as which:
+            self.assertEqual(operator_setup.run_product(self.repo, config,
+                base_environment={"PATH": "/isolated/tools"}, runner=runner), 0)
+        self.assertEqual([call.kwargs["path"] for call in which.call_args_list],
+                         ["/isolated/tools", "/isolated/tools"])
+        self.assertEqual(len(called), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

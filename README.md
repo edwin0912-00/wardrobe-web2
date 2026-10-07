@@ -20,7 +20,7 @@ Provider availability and output quality depend on the host's credentials, permi
 
 ## Run locally
 
-You need Git, Python 3.10 or newer, and Node.js 22 or newer. From a terminal:
+You need Git, Python 3.10 or newer, and Node.js 22 or newer. Fashion Video also requires FFmpeg and ffprobe on the launcher's `PATH`. From a terminal:
 
 ```sh
 git clone --filter=blob:none --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git

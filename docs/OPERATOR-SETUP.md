@@ -21,6 +21,12 @@ questionnaire from the repository checkout:
 ./setup
 ```
 
+When a private video-reference directory is configured, `./setup run` also
+requires `ffmpeg` and `ffprobe` on its actual launch `PATH`. Install FFmpeg
+with the host's package manager and include its binary directory in the
+service environment. `./setup --check` reports path lookup only; a successful
+local video probe is still required before claiming video generation works.
+
 It records a host label, optional HTTPS origin, private runtime directory,
 dedicated `CODEX_HOME`, optional private video-reference directory, ports, and
 FAL/OpenRouter keys. Secret entry uses masked terminal input. Pressing Enter

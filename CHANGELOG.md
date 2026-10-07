@@ -6,6 +6,9 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
 
 ## 2026-10-07 — controlled QA provider recovery
 
+- Configured video installations now check for FFmpeg and ffprobe on the
+  actual launcher PATH before starting; `./setup --check` reports both tools.
+
 - Fixed a same-ID Slow/Fast creation race by reserving the first request before
   asynchronous disk reads. Matching persisted replays still work through both
   direct creation and draft finalization; conflicting modes remain rejected.
