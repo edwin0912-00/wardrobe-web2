@@ -6,6 +6,12 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
 
 ## 2026-10-07 — controlled QA provider recovery
 
+- Fixed a same-ID Slow/Fast creation race by reserving the first request before
+  asynchronous disk reads. Matching persisted replays still work through both
+  direct creation and draft finalization; conflicting modes remain rejected.
+- Mutable Studio HTML, JavaScript and CSS now use `no-store`. Updated changed
+  asset tags so already cached clients also receive the current interface.
+
 - Added `/studio/` on the cinematic gateway so both experiences share their
   browser profile without broadening cookie scope. Studio static assets and
   Live navigation work both at this mount and on standalone Studio origins.

@@ -152,6 +152,8 @@ test('image mode stays immutable through concurrent creation, the persisted job,
     outfitText: 'preserve the exact supplied garment',
   };
   const creating = service.createRun(input);
+  assert.equal(service.creatingModes.get(runId), 'fast',
+    'reserve the first caller before asynchronous disk reads');
   const competingSlowCreate = service.createRun({ ...input, image_generation_mode: 'slow' });
   await assert.rejects(
     competingSlowCreate,
@@ -170,6 +172,13 @@ test('image mode stays immutable through concurrent creation, the persisted job,
   assert.equal((await service.imageGenerationModeForRun(runId)), 'fast');
   assert.ok(providerModes.length > 0 && providerModes.every(([, mode]) => mode === 'fast'));
   assert.deepEqual(garmentModes, ['fast']);
+  const wrongModeReplay = service.createRun({ ...input, image_generation_mode: 'slow' });
+  const validReplay = service.createRun(input);
+  const validDraftMode = service.assertImageGenerationMode(runId, 'fast');
+  await assert.rejects(wrongModeReplay, (error) => error.code === 'IMAGE_GENERATION_MODE_CONFLICT');
+  assert.equal(await validDraftMode, 'fast');
+  assert.equal((await validReplay).image_generation_mode, 'fast',
+    'a conflicting pending replay cannot hide an already committed matching run');
   await assert.rejects(
     service.createRun({ ...input, image_generation_mode: 'slow' }),
     (error) => error.statusCode === 409 && error.code === 'IMAGE_GENERATION_MODE_CONFLICT',

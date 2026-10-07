@@ -125,7 +125,15 @@ export async function createWebApp({
   installDemoAuth(app, auth);
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await registerHeicConversionRoute(app);
-  await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
+  await app.register(fastifyStatic, {
+    root: publicDirectory,
+    prefix: '/',
+    setHeaders(reply, filename) {
+      // Source installs retain human version tags; those are not content hashes.
+      // no-store also prevents a CDN browser-TTL override retaining stale code.
+      if (/\.(?:html|css|m?js)$/i.test(filename)) reply.header('Cache-Control', 'no-store');
+    },
+  });
   const secureCookie = process.env.ZEELY_COOKIE_SECURE !== 'false';
   let sceneService = null;
   let scenePresetResolver = null;

@@ -18,7 +18,7 @@ import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { claimProfileRun, createProfileVideoClip, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, retryProfileVideoClip, saveProfileRun } from './profile-client.js?v=20261003-1';
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
-import { createSceneUi } from './scene-ui.js?v=20261003-1';
+import { createSceneUi } from './scene-ui.js?v=20261007-acceptance';
 import { errorFromApiResponse, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 import { realtimeLookStatusLabel, resolveVideoModelId, videoModelLabel, videoModelOptions, videoRetryAvailable, videoStyleAvailability } from './video-model-ui.js?v=20261001-1';
 import {

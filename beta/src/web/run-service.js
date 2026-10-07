@@ -551,11 +551,11 @@ export class RunService {
     if (runId === null || runId === undefined) return mode;
     const safeRunId = resolveRunId(runId);
     const pendingMode = this.creatingModes.get(safeRunId);
-    if (pendingMode !== undefined && pendingMode !== mode) throw imageGenerationModeConflict();
     const existing = await this.#read(safeRunId);
     if (existing && effectiveImageGenerationMode(existing.image_generation_mode) !== mode) {
       throw imageGenerationModeConflict();
     }
+    if (!existing && pendingMode !== undefined && pendingMode !== mode) throw imageGenerationModeConflict();
     return mode;
   }
 
@@ -570,22 +570,28 @@ export class RunService {
     const imageGenerationMode = resolveImageGenerationMode(requestedImageGenerationMode);
     const pending = this.creating.get(runId);
     if (pending) {
-      if (this.creatingModes.get(runId) !== imageGenerationMode) throw imageGenerationModeConflict();
+      if (this.creatingModes.get(runId) !== imageGenerationMode) {
+        // An invalid replay must not mask an already committed matching run.
+        const existing = await this.#read(runId);
+        if (!existing || effectiveImageGenerationMode(existing.image_generation_mode) !== imageGenerationMode) {
+          throw imageGenerationModeConflict();
+        }
+        if (RESTARTABLE.has(existing.status) && !this.running.has(runId)) this.start(runId);
+        return publicRun(existing);
+      }
       return pending;
     }
-    const existing = await this.#read(runId);
-    if (existing) {
-      if (effectiveImageGenerationMode(existing.image_generation_mode) !== imageGenerationMode) throw imageGenerationModeConflict();
-      if (RESTARTABLE.has(existing.status) && !this.running.has(runId)) this.start(runId);
-      return publicRun(existing);
-    }
-    const raced = this.creating.get(runId);
-    if (raced) {
-      if (this.creatingModes.get(runId) !== imageGenerationMode) throw imageGenerationModeConflict();
-      return raced;
-    }
+    // Reserve before the first await so disk-read scheduling cannot choose the mode.
     this.creatingModes.set(runId, imageGenerationMode);
-    const creation = this.#createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference, imageGenerationMode })
+    const creation = (async () => {
+      const existing = await this.#read(runId);
+      if (existing) {
+        if (effectiveImageGenerationMode(existing.image_generation_mode) !== imageGenerationMode) throw imageGenerationModeConflict();
+        if (RESTARTABLE.has(existing.status) && !this.running.has(runId)) this.start(runId);
+        return publicRun(existing);
+      }
+      return this.#createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference, imageGenerationMode });
+    })()
       .finally(() => {
         this.creating.delete(runId);
         this.creatingModes.delete(runId);

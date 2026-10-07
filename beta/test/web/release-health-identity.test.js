@@ -42,3 +42,19 @@ test('development without a release manifest stays supported', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('mutable Studio code cannot stay cached across a deployment', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'studio-cache-'));
+  const app = await createWebApp({ service: {}, publicDirectory: root });
+  t.after(async () => { await app.close(); await rm(root, { recursive: true, force: true }); });
+  for (const name of ['index.html', 'app.js', 'styles.css']) {
+    await writeFile(path.join(root, name), 'first version');
+    const response = await app.inject({ method: 'GET', url: `/${name}?v=unchanged-tag` });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.headers['cache-control'], 'no-store');
+    await writeFile(path.join(root, name), 'updated version');
+    const refreshed = await app.inject({ method: 'GET', url: `/${name}?v=unchanged-tag` });
+    assert.equal(refreshed.body, 'updated version');
+    assert.equal(refreshed.headers['cache-control'], 'no-store');
+  }
+});

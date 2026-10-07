@@ -7,7 +7,7 @@ import {
   loadScenePresets,
   retryProfileScene,
 } from './profile-client.js?v=20261003-1';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20261003-1';
+import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20261007-acceptance';
 import {
   imageGenerationModeAvailable,
   imageGenerationModeFromJob,
@@ -27,7 +27,7 @@ import {
   sceneResumeFromSnapshot,
   sceneTone,
   writeSceneResume,
-} from './scene-state.js?v=20261003-1';
+} from './scene-state.js?v=20261007-acceptance';
 import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 import { publicErrorCode, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 
