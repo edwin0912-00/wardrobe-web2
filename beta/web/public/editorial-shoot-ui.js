@@ -864,7 +864,7 @@ export class EditorialShootUiController {
     const title = this.#element('#editorial-shot-inspector-title');
     const download = this.#element('#editorial-shot-inspector-download');
     image.src = presentationImageUrl(imageUrl);
-    image.alt = `${label} — повний кадр 4:5`;
+    image.alt = `${label} — повний кадр`;
     title.textContent = label;
     download.href = downloadUrl ?? imageUrl;
     download.download = `${this.shoot?.shoot_id ?? 'art-fashion'}-${label}.png`;
