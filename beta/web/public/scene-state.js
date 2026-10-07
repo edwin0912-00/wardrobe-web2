@@ -132,6 +132,7 @@ export function sceneResumeFromSnapshot(scene, previous = {}) {
 
 export function presetCameraLabel(preset) {
   const lens = Number(preset?.camera?.lens_mm);
-  const ratio = nonEmptyString(preset?.camera?.aspect_ratio) ? preset.camera.aspect_ratio : '4:5';
+  // Historical preset reference crops do not change the scene delivery contract.
+  const ratio = '3:4';
   return Number.isFinite(lens) ? `${lens} мм · ${ratio}` : ratio;
 }

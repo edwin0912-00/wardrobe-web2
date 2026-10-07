@@ -17,7 +17,7 @@ from functools import partial
 from http.client import HTTPConnection
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import TCPServer
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
 API_UPSTREAM = os.environ.get("WARDROBE_API_UPSTREAM", "http://127.0.0.1:4176")
@@ -54,6 +54,8 @@ IMMUTABLE_MEDIA_EXTENSIONS = {".mp4", ".mp3", ".jpg", ".jpeg", ".png", ".webp", 
 # the moment one is added. This blocks a known-public internal surface without pretending to
 # know the full shape of the legitimate one.
 BLOCKED_API_PREFIXES = ("/api/god-view",)
+STUDIO_STATIC_EXTENSIONS = {".js", ".mjs", ".css", ".svg", ".png", ".jpg", ".jpeg",
+                            ".webp", ".avif", ".ico", ".woff", ".woff2", ".mp4", ".mp3", ".wasm"}
 
 
 class RangeHandler(SimpleHTTPRequestHandler):
@@ -188,7 +190,33 @@ class RangeHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.end_headers()
 
-    def _proxy_api(self):
+    def _serve_studio(self):
+        request = urlsplit(self.path)
+        if request.path == "/studio":
+            self.send_response(308)
+            self.send_header("Location", "/studio/" + ("?" + request.query if request.query else ""))
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return True
+        if not request.path.startswith("/studio/"):
+            return False
+        relative = unquote(request.path[len("/studio/"):])
+        # This mount owns public documents/assets only. APIs remain at /api;
+        # encoded traversal must not become another route to internal APIs.
+        if (relative.startswith("/") or "\\" in relative or "%" in relative
+                or any(part in {".", ".."} for part in relative.split("/"))
+                or relative.startswith(("api/", "god-view"))
+                or (relative not in {"", "index.html", "post-shoot-mvp.html"}
+                    and os.path.splitext(relative)[1].lower() not in STUDIO_STATIC_EXTENSIONS)):
+            self.send_error(404, "Not found")
+            return True
+        target = "/" + request.path[len("/studio/"):]
+        if request.query:
+            target += "?" + request.query
+        self._proxy_api(target)
+        return True
+
+    def _proxy_api(self, upstream_path=None):
         """Stream same-origin API requests to the local beta engine.
 
         The browser always talks to the active presentation origin.  Host-only
@@ -229,7 +257,7 @@ class RangeHandler(SimpleHTTPRequestHandler):
         conn = HTTPConnection(upstream.hostname, upstream.port or 80, timeout=3600)
         response_started = False
         try:
-            conn.putrequest(self.command, self.path, skip_host=True, skip_accept_encoding=True)
+            conn.putrequest(self.command, upstream_path or self.path, skip_host=True, skip_accept_encoding=True)
             for name, value in self.headers.items():
                 lower = name.lower()
                 if lower in HOP_BY_HOP or lower in {
@@ -314,6 +342,8 @@ class RangeHandler(SimpleHTTPRequestHandler):
             conn.close()
 
     def do_GET(self):
+        if self._serve_studio():
+            return
         if self._is_legacy_entry_path():
             return self._redirect_legacy_entry()
         if self._is_api_request():
@@ -321,6 +351,8 @@ class RangeHandler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_HEAD(self):
+        if self._serve_studio():
+            return
         if self._is_legacy_entry_path():
             return self._redirect_legacy_entry()
         if self._is_api_request():

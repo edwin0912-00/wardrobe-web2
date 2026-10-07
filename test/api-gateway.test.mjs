@@ -280,3 +280,49 @@ test('only versioned cinematic media is reusable on a repeat visit', async (t) =
     assert.equal(response.headers['cache-control'], 'no-store', `${requestPath} must not become stale`);
   }
 });
+
+test('Studio shares the main origin without exposing nested API or internal pages', async (t) => {
+  const reached = [];
+  const upstream = createServer((request, response) => {
+    reached.push({ url: request.url, cookie: request.headers.cookie, host: request.headers.host });
+    response.setHeader('Content-Type', request.url === '/' ? 'text/html' : 'text/plain');
+    response.setHeader('Set-Cookie', '__Host-zeely_profile=fixture; Secure; Path=/; SameSite=Strict');
+    response.end(request.url === '/' ? '<script src="./app.js"></script>' : 'studio-asset');
+  });
+  const upstreamPort = await listen(upstream);
+  t.after(() => upstream.close());
+  const root = await mkdtemp(path.join(tmpdir(), 'wardrobe-studio-gateway-'));
+  await mkdir(path.join(root, 'b'));
+  await writeFile(path.join(root, 'b/index.html'), 'cinematic-main');
+  const gateway = await startGateway(root, upstreamPort);
+  t.after(async () => { gateway.child.kill('SIGTERM'); await once(gateway.child, 'exit').catch(() => {}); });
+  const redirect = await requestGateway(gateway.port, { path: '/studio?run=fixture' });
+  assert.equal(redirect.status, 308);
+  assert.equal(redirect.headers.location, '/studio/?run=fixture');
+  const headers = { host: 'wardrobe.example', cookie: '__Host-zeely_profile=fixture' };
+  const studio = await requestGateway(gateway.port, { path: '/studio/', headers });
+  assert.equal(studio.status, 200);
+  assert.match(studio.body.toString(), /\.\/app.js/);
+  assert.deepEqual(reached.at(-1), { url: '/', host: headers.host, cookie: headers.cookie });
+  assert.match(studio.headers['set-cookie'][0], /Secure; Path=\//);
+  assert.doesNotMatch(studio.headers['set-cookie'][0], /Domain=/i);
+  const asset = await requestGateway(gateway.port, { path: '/studio/app.js?v=fixture', headers });
+  assert.equal(asset.status, 200);
+  assert.equal(reached.at(-1).url, '/app.js?v=fixture');
+  const main = await requestGateway(gateway.port, { path: '/' });
+  assert.equal(main.body.toString(), 'cinematic-main');
+  await requestGateway(gateway.port, { path: '/api/profile', headers });
+  assert.deepEqual(reached.at(-1), { url: '/api/profile', host: headers.host, cookie: headers.cookie });
+  const before = reached.length;
+  for (const badPath of ['/studio/api/profile', '/studio/api/god-view/overview',
+    '/studio/god-view.html', '/studio/.env', '/studio/../api/god-view/overview',
+    '/studio/%2e%2e/api/god-view/overview', '/studio/%252e%252e/api/god-view/overview',
+    '/studio//api/god-view/overview', '/studio/%2fapi/god-view/overview']) {
+    const response = await requestGateway(gateway.port, { path: badPath });
+    assert.equal(response.status, 404, badPath);
+  }
+  assert.equal(reached.length, before);
+  const mutation = await requestGateway(gateway.port, { path: '/studio/api/runs', method: 'POST' });
+  assert.equal(mutation.status, 405);
+  assert.equal(reached.length, before);
+});

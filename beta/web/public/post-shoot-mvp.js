@@ -192,7 +192,7 @@ function exitLiveSurface() {
       return;
     }
   }
-  location.assign('/');
+  location.assign(location.pathname.startsWith('/studio/') ? '/studio/' : '/');
 }
 async function signal(result) {
   const type = String(result?.type ?? '').toLowerCase().replaceAll('_', '');
@@ -331,7 +331,7 @@ if (selectedLookId) {
   setAiThinking(true, 'searching', 'AI відкриває образ', 'Завантажуємо тестовий reference');
   status('Завантажуємо тестовий outfit…');
   loadReferenceUrl(
-    '/live-test-outfit.png?v=20260729-1',
+    new URL('./live-test-outfit.png?v=20260729-1', import.meta.url).href,
     'live-test-outfit.png',
     'Hoodie + sneakers · READY',
     { publicProviderUrl: true },

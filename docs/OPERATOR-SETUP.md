@@ -7,6 +7,13 @@ startup to the existing `./verify --run` contract.
 
 ## Local setup
 
+The main gateway also serves Studio at `/studio/`. Use that address when
+switching between the cinematic site and Studio with the same saved looks.
+Profile cookies remain host-only; a separate Studio domain or port has an
+independent browser session. Existing separate-domain profiles are preserved.
+The mount proxies public Studio documents/assets only; API calls stay at
+`/api/`, and internal control-room routes remain blocked by the gateway.
+
 Requirements remain Git, Python 3.10+, and Node.js 22+ with npm. Run the
 questionnaire from the repository checkout:
 

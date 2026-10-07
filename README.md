@@ -6,7 +6,7 @@ Create a personal look from photos of a person and their clothes, then carry tha
 
 ![Ivory fabric from the Wardrobe cinematic opening](b/assets/readme-cover.jpg)
 
-Wardrobe ships as one repository with two connected experiences: a cinematic main site and Studio. Both use the same engine, saved looks, and provider configuration.
+Wardrobe ships as one repository with two connected experiences: a cinematic main site and Studio. Open Studio at `/studio/` on the main site's domain to share saved looks in the same browser. A separate Studio hostname has its own browser profile; both surfaces use the same engine and provider configuration.
 
 ## What you can do
 

@@ -425,6 +425,26 @@ try {
     return { status: response.status, looks: profile.looks?.length ?? 0 };
   });
   assert.deepEqual(restored, { status: 200, looks: 2 });
+  await page.goto(`${gateway.origin}/studio/`, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  await page.waitForFunction(() => document.body?.dataset.appReady === 'true', null, { timeout: timeoutMs });
+  await page.evaluate(() => {
+    const probe = document.querySelector('#video-retry').cloneNode(true);
+    probe.id = 'hidden-retry-regression';
+    document.body.append(probe);
+  });
+  assert.equal(await page.locator('#hidden-retry-regression').isVisible(), false,
+    'Button styles must not override the HTML hidden attribute');
+  await page.locator('#hidden-retry-regression').evaluate((element) => element.remove());
+  await page.locator('#open-profile-global').click();
+  await page.locator('#profile-view').waitFor({ state: 'visible', timeout: timeoutMs });
+  const studioLooks = await page.evaluate(async () => {
+    const response = await fetch('/api/profile', { credentials: 'same-origin' });
+    const profile = await response.json();
+    return (profile.looks ?? []).map((look) => look.look_id).sort();
+  });
+  assert.deepEqual(studioLooks, [result.text.look_id, result.reference.look_id].sort(),
+    'Studio must retain the exact saved looks from the cinematic session');
+  assert.ok(await page.locator('.profile-look-card').count() > 0, 'Studio did not render saved looks');
   assert.deepEqual(pageErrors, [], `browser page errors: ${pageErrors.join(' | ')}`);
   assert.deepEqual(failedCriticalRequests, [], `critical request failures: ${failedCriticalRequests.join(' | ')}`);
   assert.deepEqual(failedCriticalResponses, [], `critical HTTP responses: ${failedCriticalResponses.join(' | ')}`);

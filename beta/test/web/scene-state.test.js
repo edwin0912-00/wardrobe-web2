@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ACTIVE_SCENE_KEY,
+  presetCameraLabel,
   normalizeSceneResume,
   readSceneResume,
   sceneResumeFromSnapshot,
@@ -46,4 +47,9 @@ test('legacy scene resume defaults missing mode to Slow and rejects invalid mode
   const { image_generation_mode: _mode, ...legacy } = request;
   assert.equal(normalizeSceneResume(legacy).image_generation_mode, 'slow');
   assert.equal(normalizeSceneResume({ ...request, image_generation_mode: null }), null);
+});
+
+test('preset camera labels describe the delivered 3:4 scene, not the historical reference crop', () => {
+  assert.equal(presetCameraLabel({ camera: { lens_mm: 70, aspect_ratio: '4:5' } }), '70 мм · 3:4');
+  assert.equal(presetCameraLabel({}), '3:4');
 });

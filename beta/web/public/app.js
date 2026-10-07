@@ -2040,6 +2040,11 @@ async function refreshRealtimeLookCapability(look) {
     const launchUrl = typeof payload?.launch?.href === 'string'
       ? new URL(payload.launch.href, window.location.origin)
       : null;
+    if (window.location.pathname.startsWith('/studio/')
+      && launchUrl?.origin === window.location.origin
+      && launchUrl.pathname === '/post-shoot-mvp.html') {
+      launchUrl.pathname = '/studio/post-shoot-mvp.html';
+    }
     const ready = payload?.capability === 'REALTIME_LOOK'
       && payload?.camera_preview_ready === true
       && payload?.launch?.presentation === 'FULL_VIEWPORT'
@@ -2412,7 +2417,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   progressFill.style.width = '10%';
   progressStatus.textContent = `Відправляємо вибраний стиль у ${videoModelLabel(fashionVideoCapability, videoModel)}…`;
   try {
-    if (!styleId || !motionMode) throw new Error('Обери один із трьох відеостилів.');
+    if (!styleId || !motionMode) throw new Error('Обери доступний відеостиль.');
     if (!availability.available) throw new Error(availability.reason);
     const clip = await createProfileVideoClip({
       lookId,

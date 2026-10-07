@@ -6,6 +6,17 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
 
 ## 2026-10-07 — controlled QA provider recovery
 
+- Added `/studio/` on the cinematic gateway so both experiences share their
+  browser profile without broadening cookie scope. Studio static assets and
+  Live navigation work both at this mount and on standalone Studio origins.
+- Removed a stale fixed count from the video-style validation message.
+- Scene cards now show the actual 3:4 delivery format instead of the historical
+  4:5 reference crop; source references and framing gates are unchanged.
+- Scene progress identifies the selected Slow/Fast route instead of presenting
+  a legacy quality-ladder name as the actual provider model.
+- Restored the HTML `hidden` contract when button layout styles are applied,
+  so retry controls stay hidden until a retry is available.
+
 - Added a validated startup switch for automatic recovery of failed scene QA.
   Operators can change QA providers without replaying the historical backlog;
   new jobs and explicit retries keep all existing quality checks.

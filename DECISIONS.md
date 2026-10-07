@@ -1,5 +1,10 @@
 # Wardrobe decisions
 
+- **2026-10-07 — Test the complete temporary deployment and fix reproduced defects.**
+  Use the existing total $20 validation ceiling. Provide a same-origin Studio
+  mount to fulfill shared saved-look behavior while keeping host-only cookies;
+  preserve existing separate-domain profiles rather than silently migrating them.
+
 - **2026-10-07 — Temporarily switch semantic QA to Codex.** The owner approved
   the existing Codex evaluator after OpenRouter credit exhaustion blocked
   generation delivery. Preserve every quality gate and image route; disable

@@ -704,10 +704,10 @@ export class SceneUiController {
       };
     this.selectedPreset = preset;
     this.#element('#scene-active-preset').textContent = preset.ui_name_uk || preset.preset_id || 'Сцена';
-    const model = scene.execution?.model;
-    this.#element('#scene-model').textContent = model
-      ? `${model.name} · ${model.quality}`
-      : 'Модель ще не призначена';
+    // The legacy model route is a quality ladder, not the provider's model name.
+    this.#element('#scene-model').textContent = imageGenerationModeFromJob(scene) === 'fast'
+      ? 'Маршрут: Fast · FAL Sunburst'
+      : 'Маршрут: Slow · Codex із резервним FAL';
 
     const completed = status === 'COMPLETED' && scene.output?.image_url;
     this.#element('#scene-running-stage').hidden = Boolean(completed);
